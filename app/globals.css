@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f2e9;
+  --foreground: #2f2d2a;
+  --gold: #b99455;
+  --muted: #817b72;
+  --line: rgba(120, 106, 82, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at top left, rgba(226, 209, 171, 0.34), transparent 34rem),
+    linear-gradient(180deg, #fbf8f1 0%, #f4efe6 48%, #ebe6dc 100%);
+  font-family:
+    var(--font-noto-sans-tc),
+    "Noto Sans TC",
+    "Hiragino Sans",
+    "Yu Gothic",
+    system-ui,
+    sans-serif;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
