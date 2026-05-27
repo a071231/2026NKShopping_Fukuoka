@@ -5,6 +5,8 @@ import {
   CalendarDays,
   Car,
   CheckSquare,
+  Cloud,
+  CloudRain,
   Copy,
   ExternalLink,
   Home,
@@ -25,7 +27,7 @@ import {
   X,
 } from "lucide-react";
 
-import { hotel, itinerary, tripDays, weatherForecast, type ItineraryCategory } from "@/data/trip";
+import { hotel, itinerary, tripDays, weatherForecast, type ItineraryCategory, type WeatherIcon } from "@/data/trip";
 import { cn } from "@/lib/utils";
 
 type View = "home" | "tools" | "ledger" | "checklist";
@@ -52,6 +54,12 @@ const categoryMeta: Record<
   食物: { en: "FOOD", icon: Utensils, color: "text-amber-700" },
   購物: { en: "SHOPPING", icon: ShoppingBag, color: "text-rose-700" },
   景點: { en: "ACTIVITY", icon: Navigation, color: "text-emerald-700" },
+};
+
+const weatherIconMap: Record<WeatherIcon, typeof Sun> = {
+  sun: Sun,
+  cloud: Cloud,
+  rain: CloudRain,
 };
 
 const initialExpenses: Expense[] = [
@@ -120,7 +128,7 @@ export default function HomePage() {
         ) : (
           <>
             <JourneyBanner />
-            <WeatherStripPaged />
+            <WeatherStrip />
             <StayCard />
             <Timeline dayItems={dayItems} />
           </>
@@ -136,7 +144,7 @@ function TripHeader() {
     <header className="pt-[76px] text-center">
       <p className="text-[10px] font-medium uppercase tracking-[0.34em] text-stone-400">Family Trip</p>
       <div className="mt-2 flex items-center justify-center gap-3">
-        <h1 className="font-serif text-xl font-semibold tracking-[0.12em] text-stone-950">九州旅行</h1>
+        <h1 className="font-serif text-xl font-semibold tracking-[0.12em] text-stone-950">福岡旅行</h1>
         <span className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white/80 font-serif text-[11px] text-stone-500">
           2026
         </span>
@@ -197,46 +205,30 @@ function JourneyBanner() {
   );
 }
 
-function WeatherStripPaged() {
-  const pageSize = 5;
-  const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(weatherForecast.length / pageSize);
-  const visibleWeather = weatherForecast.slice(page * pageSize, page * pageSize + pageSize);
-
+function WeatherStrip() {
   return (
-    <section className="mt-8 border-b border-stone-200/70 pb-8">
-      <div className="flex items-end justify-between px-5">
-        <div>
-          <h2 className="font-serif text-3xl font-semibold tracking-[0.06em] text-stone-900">當地天氣</h2>
-          <p className="mt-1 text-xs tracking-[0.16em] text-stone-300">未來數日預報</p>
-        </div>
-        <span className="text-[10px] text-stone-300">Open-Meteo</span>
-      </div>
-      <div className="mt-7 grid grid-cols-5 px-2">
-        {visibleWeather.map((item) => (
-          <div key={item.date} className="px-1 text-center">
-            <p className="font-serif text-sm text-stone-500">{item.date}</p>
-            <Sun className="mx-auto mt-4 h-7 w-7 text-stone-600" strokeWidth={1.4} />
-            <p className="mt-4 font-serif text-2xl text-stone-800">{item.high}</p>
-            <p className="mt-1 font-serif text-base text-stone-400">{item.low}</p>
-            <p className="mt-2 line-clamp-1 text-[10px] text-stone-400">{item.condition}</p>
+    <section className="mt-12 border-b border-stone-200/70 pb-10">
+      <div className="flex items-end justify-between gap-4 px-5">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+            <h2 className="font-serif text-2xl font-semibold leading-none tracking-[0.04em] text-stone-900">福岡市</h2>
+            <p className="pb-1 text-sm font-semibold tracking-[0.08em] text-stone-400">近11天當地天氣預報</p>
           </div>
-        ))}
+        </div>
+        <span className="shrink-0 pb-1 text-[11px] text-stone-300">Open-Meteo</span>
       </div>
-      <div className="mt-6 flex items-center justify-center gap-2">
-        {Array.from({ length: totalPages }, (_, index) => (
-          <button
-            key={index}
-            onClick={() => setPage(index)}
-            className={cn(
-              "h-7 min-w-7 rounded-full border px-2 font-serif text-xs transition",
-              page === index ? "border-[#8f293d] bg-[#8f293d] text-white" : "border-stone-200 bg-white/70 text-stone-400",
-            )}
-            aria-label={`顯示第 ${index + 1} 頁天氣`}
-          >
-            {index + 1}
-          </button>
-        ))}
+
+      <div className="no-scrollbar mt-8 flex snap-x gap-7 overflow-x-auto px-5 pr-12">
+        {weatherForecast.map((item) => {
+          const Icon = weatherIconMap[item.icon];
+          return (
+            <div key={item.date} className="w-[54px] shrink-0 snap-start text-center">
+              <p className="font-serif text-base leading-none text-stone-500">{item.date}</p>
+              <Icon className="mx-auto mt-6 h-7 w-7 text-stone-800" strokeWidth={1.6} />
+              <p className="mt-6 font-serif text-2xl leading-none text-stone-900">{item.high}</p>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -317,28 +309,8 @@ function ToolsView() {
     { type: "ACTIVITY", title: "茅乃舍 餐廳", detail: "Open Link →" },
   ];
   const flightTickets = [
-    {
-      id: "flight-out",
-      label: "去程航班",
-      date: "2026.10.03",
-      from: "TPE",
-      to: "FUK",
-      depart: "07:30",
-      arrive: "11:00",
-      airline: "星宇航空",
-      flightNo: "JX846",
-    },
-    {
-      id: "flight-back",
-      label: "回程航班",
-      date: "2026.10.11",
-      from: "FUK",
-      to: "TPE",
-      depart: "待確認",
-      arrive: "待確認",
-      airline: "星宇航空",
-      flightNo: "待確認",
-    },
+    { id: "flight-out", label: "去程航班", date: "2026.10.03", from: "TPE", to: "FUK", depart: "07:30", arrive: "11:00", airline: "星宇航空", flightNo: "JX846" },
+    { id: "flight-back", label: "回程航班", date: "2026.10.11", from: "FUK", to: "TPE", depart: "待確認", arrive: "待確認", airline: "星宇航空", flightNo: "待確認" },
   ];
 
   return (
@@ -471,7 +443,6 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8f293d]">Flight Ticket</p>
         <p className="text-[10px] uppercase tracking-[0.24em] text-stone-300">{ticket.label}</p>
       </div>
-
       <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div>
           <p className="font-serif text-4xl font-bold tracking-[0.02em] text-stone-950">{ticket.from}</p>
@@ -487,7 +458,6 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
           <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-stone-300">Arr {ticket.arrive}</p>
         </div>
       </div>
-
       <div className="mt-5 rounded-xl bg-[#f8f6f1] px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -521,10 +491,7 @@ function LedgerView() {
     event.preventDefault();
     const parsedAmount = Number(amount.replace(/,/g, ""));
     if (!title.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
-    setExpenses((current) => [
-      ...current,
-      { id: crypto.randomUUID(), title: title.trim(), amount: Math.round(parsedAmount), payer },
-    ]);
+    setExpenses((current) => [...current, { id: crypto.randomUUID(), title: title.trim(), amount: Math.round(parsedAmount), payer }]);
     setTitle("");
     setAmount("");
     setPayer("K");
@@ -549,11 +516,7 @@ function LedgerView() {
 
       <div className="mt-5 flex gap-2">
         {(["all", "K", "M", "E", "G", "J"] as const).map((item) => (
-          <button
-            key={item}
-            onClick={() => setFilter(item)}
-            className={cn("flex h-8 min-w-8 items-center justify-center rounded-full border px-3 font-serif text-sm", filter === item ? "border-[#3c3631] bg-[#3c3631] text-white" : "border-stone-200 bg-white text-stone-400")}
-          >
+          <button key={item} onClick={() => setFilter(item)} className={cn("flex h-8 min-w-8 items-center justify-center rounded-full border px-3 font-serif text-sm", filter === item ? "border-[#3c3631] bg-[#3c3631] text-white" : "border-stone-200 bg-white text-stone-400")}>
             {item === "all" ? "全部" : item}
           </button>
         ))}
@@ -565,7 +528,6 @@ function LedgerView() {
           <p className="mt-2 font-serif text-5xl font-semibold text-stone-900">${total.toLocaleString()}</p>
           <p className="mt-2 text-sm font-semibold text-stone-500">每人均攤: ${Math.round(total / 5).toLocaleString()}</p>
         </div>
-
         {visibleExpenses.map((expense) => (
           <div key={expense.id} className="flex items-center justify-between border-b border-stone-100 p-4 last:border-b-0">
             <div>
@@ -649,9 +611,7 @@ function ChecklistView() {
     if (!trimmedLabel) return;
     setCategories((current) =>
       current.map((category) =>
-        category.id === categoryId
-          ? { ...category, items: [...category.items, { id: crypto.randomUUID(), label: trimmedLabel, done: false }] }
-          : category,
+        category.id === categoryId ? { ...category, items: [...category.items, { id: crypto.randomUUID(), label: trimmedLabel, done: false }] } : category,
       ),
     );
     setLabel("");
@@ -693,17 +653,12 @@ function ChecklistView() {
                   <div key={item.id} className="flex min-h-14 items-center gap-3 px-5 py-3">
                     <button
                       onClick={() => toggleItem(category.id, item.id)}
-                      className={cn(
-                        "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition",
-                        item.done ? "border-[#8f293d] bg-[#8f293d] text-white" : "border-stone-300 bg-white text-transparent",
-                      )}
+                      className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded border transition", item.done ? "border-[#8f293d] bg-[#8f293d] text-white" : "border-stone-300 bg-white text-transparent")}
                       aria-label={item.done ? "標記為未完成" : "標記為完成"}
                     >
                       <CheckSquare className="h-3.5 w-3.5" strokeWidth={2} />
                     </button>
-                    <span className={cn("flex-1 text-sm font-medium", item.done ? "text-stone-300 line-through" : "text-stone-800")}>
-                      {item.label}
-                    </span>
+                    <span className={cn("flex-1 text-sm font-medium", item.done ? "text-stone-300 line-through" : "text-stone-800")}>{item.label}</span>
                     <button onClick={() => removeItem(category.id, item.id)} className="text-stone-300" aria-label="刪除物品">
                       <X className="h-4 w-4" strokeWidth={1.6} />
                     </button>

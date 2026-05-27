@@ -1,4 +1,5 @@
 export type ItineraryCategory = "交通" | "食物" | "購物" | "景點";
+export type WeatherIcon = "sun" | "cloud" | "rain";
 
 export type ItineraryItem = {
   id: string;
@@ -23,19 +24,23 @@ export const tripDays = [
   { date: "2026-10-11", weekday: "SUN", day: "11", label: "DAY 9", city: "返程" },
 ];
 
-export const weatherForecast = [
-  { date: "5/26", weekday: "TUE", high: "24°", low: "18°", condition: "晴時多雲", rain: "10%" },
-  { date: "5/27", weekday: "WED", high: "25°", low: "19°", condition: "晴朗", rain: "10%" },
-  { date: "5/28", weekday: "THU", high: "26°", low: "20°", condition: "多雲", rain: "20%" },
-  { date: "5/29", weekday: "FRI", high: "24°", low: "19°", condition: "短暫雨", rain: "40%" },
-  { date: "5/30", weekday: "SAT", high: "23°", low: "18°", condition: "陰天", rain: "35%" },
-  { date: "5/31", weekday: "SUN", high: "25°", low: "19°", condition: "晴時多雲", rain: "15%" },
-  { date: "6/1", weekday: "MON", high: "26°", low: "20°", condition: "晴朗", rain: "10%" },
-  { date: "6/2", weekday: "TUE", high: "25°", low: "20°", condition: "多雲", rain: "20%" },
-  { date: "6/3", weekday: "WED", high: "24°", low: "19°", condition: "短暫雨", rain: "45%" },
-  { date: "6/4", weekday: "THU", high: "23°", low: "18°", condition: "陰天", rain: "35%" },
-  { date: "6/5", weekday: "FRI", high: "24°", low: "18°", condition: "晴朗", rain: "10%" },
-  { date: "6/6", weekday: "SAT", high: "25°", low: "19°", condition: "晴時多雲", rain: "15%" },
+export const weatherForecast: Array<{
+  date: string;
+  weekday: string;
+  high: string;
+  icon: WeatherIcon;
+}> = [
+  { date: "5/15", weekday: "FRI", high: "25°", icon: "sun" },
+  { date: "5/16", weekday: "SAT", high: "23°", icon: "cloud" },
+  { date: "5/17", weekday: "SUN", high: "22°", icon: "rain" },
+  { date: "5/18", weekday: "MON", high: "26°", icon: "sun" },
+  { date: "5/19", weekday: "TUE", high: "27°", icon: "sun" },
+  { date: "5/20", weekday: "WED", high: "24°", icon: "cloud" },
+  { date: "5/21", weekday: "THU", high: "25°", icon: "sun" },
+  { date: "5/22", weekday: "FRI", high: "24°", icon: "rain" },
+  { date: "5/23", weekday: "SAT", high: "26°", icon: "sun" },
+  { date: "5/24", weekday: "SUN", high: "25°", icon: "cloud" },
+  { date: "5/25", weekday: "MON", high: "23°", icon: "rain" },
 ];
 
 export const hotel = {
