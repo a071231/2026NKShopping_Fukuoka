@@ -118,7 +118,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-[#f8f6f1] text-[#2c2925]">
       <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#fbfaf7] pb-28 shadow-[0_0_80px_rgba(60,52,42,0.08)]">
         <TripHeader />
-        <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} view={view} setView={setView} />
+        {view !== "home" ? <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} view={view} setView={setView} /> : null}
         {view === "tools" ? (
           <ToolsView />
         ) : view === "ledger" ? (
@@ -130,6 +130,7 @@ export default function HomePage() {
             <JourneyBanner />
             <WeatherStrip />
             <StayCard />
+            <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} view={view} setView={setView} />
             <Timeline dayItems={dayItems} />
           </>
         )}
