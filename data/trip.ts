@@ -25,14 +25,6 @@ export const tripDays = [
   { date: "2026-02-20", weekday: "FRI", day: "20", label: "DAY 11", city: "整理" },
 ];
 
-export const weather = [
-  { date: "5/26", weekday: "TUE", high: "27°", low: "20°", condition: "晴時多雲", rain: "10%" },
-  { date: "5/27", weekday: "WED", high: "26°", low: "21°", condition: "多雲", rain: "20%" },
-  { date: "5/28", weekday: "THU", high: "25°", low: "20°", condition: "短暫雨", rain: "45%" },
-  { date: "5/29", weekday: "FRI", high: "28°", low: "21°", condition: "晴朗", rain: "10%" },
-  { date: "5/30", weekday: "SAT", high: "29°", low: "22°", condition: "微雲", rain: "15%" },
-];
-
 export const weatherForecast = [
   { date: "5/26", weekday: "TUE", high: "27°", low: "20°", condition: "晴時多雲", rain: "10%" },
   { date: "5/27", weekday: "WED", high: "26°", low: "21°", condition: "多雲", rain: "20%" },

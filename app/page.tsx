@@ -16,7 +16,7 @@ import {
   Utensils,
 } from "lucide-react";
 
-import { hotel, itinerary, tripDays, weather, weatherForecast, type ItineraryCategory } from "@/data/trip";
+import { hotel, itinerary, tripDays, weatherForecast, type ItineraryCategory } from "@/data/trip";
 import { cn } from "@/lib/utils";
 
 const categoryMeta: Record<
@@ -211,68 +211,29 @@ function WeatherStripPaged() {
   );
 }
 
-function WeatherStrip() {
-  return (
-    <section className="mt-12 border-b border-t border-stone-200 py-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-3xl font-semibold tracking-[0.08em] text-stone-900">
-            福岡市 天氣資訊
-          </h2>
-          <p className="mt-1 text-xs tracking-[0.16em] text-stone-300">未來 24 小時預報</p>
-        </div>
-        <span className="text-xs text-stone-300">Open-Meteo</span>
-      </div>
-
-      <div className="no-scrollbar -mx-5 mt-8 overflow-x-auto px-5 md:mx-0 md:px-0">
-        <div className="flex w-max min-w-full">
-          {weather.map((item) => (
-            <div
-              key={item.date}
-              className="w-[20vw] min-w-[72px] max-w-[112px] shrink-0 border-r border-stone-200/70 px-2 text-center last:border-r-0 md:w-[20%] md:max-w-none"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-300">
-                {item.weekday}
-              </p>
-              <p className="mt-1 font-serif text-lg text-stone-500">{item.date}</p>
-              <Sun className="mx-auto mt-4 h-7 w-7 text-stone-600" strokeWidth={1.4} />
-              <p className="mt-4 font-serif text-2xl text-stone-800">{item.high}</p>
-              <p className="mt-1 font-serif text-lg text-stone-400">{item.low}</p>
-              <p className="mt-3 line-clamp-1 text-[11px] text-stone-500">{item.condition}</p>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-stone-300">
-                {item.rain}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function StayCard() {
   return (
     <section className="mt-8 border-l-4 border-[#cf9aa2] py-1 pl-5">
       <div className="overflow-hidden border border-stone-200 bg-white/54 shadow-[0_12px_32px_rgba(60,52,42,0.05)]">
         <img src={hotel.image} alt={hotel.name} className="aspect-[19/8] w-full object-cover" />
         <div className="flex items-start justify-between gap-4 p-5">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.28em] text-stone-300">住宿資訊</p>
-          <h2 className="mt-2 font-serif text-2xl font-semibold tracking-[0.02em] text-[#7d2437] md:text-3xl">
-            {hotel.name}
-          </h2>
-          <p className="mt-3 flex items-center gap-2 text-sm text-stone-400">
-            <CalendarDays className="h-4 w-4" />
-            {hotel.dates}
-          </p>
-          <p className="mt-2 flex items-start gap-2 text-sm leading-relaxed text-stone-400">
-            <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-            {hotel.address}
-          </p>
-        </div>
-        <button className="mt-2 text-[#7d2437]" aria-label="複製住宿資訊">
-          <Copy className="h-5 w-5" strokeWidth={1.5} />
-        </button>
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.28em] text-stone-300">住宿資訊</p>
+            <h2 className="mt-2 font-serif text-2xl font-semibold tracking-[0.02em] text-[#7d2437] md:text-3xl">
+              {hotel.name}
+            </h2>
+            <p className="mt-3 flex items-center gap-2 text-sm text-stone-400">
+              <CalendarDays className="h-4 w-4" />
+              {hotel.dates}
+            </p>
+            <p className="mt-2 flex items-start gap-2 text-sm leading-relaxed text-stone-400">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+              {hotel.address}
+            </p>
+          </div>
+          <button className="mt-2 text-[#7d2437]" aria-label="複製住宿資訊">
+            <Copy className="h-5 w-5" strokeWidth={1.5} />
+          </button>
         </div>
       </div>
     </section>
@@ -280,6 +241,15 @@ function StayCard() {
 }
 
 function Timeline({ dayItems }: { dayItems: typeof itinerary }) {
+  if (dayItems.length === 0) {
+    return (
+      <section className="mt-14 border border-dashed border-stone-200 bg-white/40 p-8 text-center">
+        <p className="font-serif text-xl text-stone-500">尚未建立當日行程</p>
+        <p className="mt-2 text-sm text-stone-300">可先保留日期，之後再補上詳細安排。</p>
+      </section>
+    );
+  }
+
   return (
     <section className="mt-14">
       <div className="relative">
@@ -289,7 +259,10 @@ function Timeline({ dayItems }: { dayItems: typeof itinerary }) {
             const meta = categoryMeta[item.category];
             const Icon = meta.icon;
             return (
-              <article key={item.id} className="relative grid grid-cols-[82px_1fr] gap-5 md:grid-cols-[112px_1fr]">
+              <article
+                key={item.id}
+                className="relative grid grid-cols-[82px_1fr] gap-5 md:grid-cols-[112px_1fr]"
+              >
                 <time className="pt-1 font-serif text-2xl font-semibold text-stone-900">
                   {item.time}
                 </time>
@@ -298,7 +271,12 @@ function Timeline({ dayItems }: { dayItems: typeof itinerary }) {
                   <h3 className="font-serif text-xl font-semibold tracking-[0.02em] text-stone-900 md:text-2xl">
                     {item.title}
                   </h3>
-                  <div className={cn("mt-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em]", meta.color)}>
+                  <div
+                    className={cn(
+                      "mt-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em]",
+                      meta.color,
+                    )}
+                  >
                     <Icon className="h-3.5 w-3.5" strokeWidth={1.5} />
                     <span>{meta.en}</span>
                   </div>
@@ -319,7 +297,7 @@ function Timeline({ dayItems }: { dayItems: typeof itinerary }) {
 function InfoPanel() {
   const cards = [
     { type: "FLIGHT", title: "JX846 福岡航班", note: "桃園國際機場出發" },
-    { type: "CAR", title: "Toyota Rent a Car", note: "3/14 取車" },
+    { type: "CAR", title: "Toyota Rent a Car", note: "抵達後取車" },
     { type: "HOTEL", title: hotel.name, note: hotel.address },
     { type: "ACTIVITY", title: "太宰府天滿宮", note: "參道散策與梅枝餅" },
   ];
@@ -365,17 +343,13 @@ function NowCard({ item }: { item: (typeof itinerary)[number] }) {
           <p className="mt-1 line-clamp-1 text-xs text-stone-400">→ {item.address}</p>
         </div>
         <div className="flex flex-col items-center justify-center border-l border-stone-100 text-stone-500">
-          <ClockText />
+          <span className="h-4 w-4 rounded-full border border-stone-400" aria-hidden="true" />
           <p className="mt-2 font-serif text-xl font-semibold">15:00</p>
           <p className="text-[10px] text-stone-400">下個時間</p>
         </div>
       </div>
     </aside>
   );
-}
-
-function ClockText() {
-  return <span className="h-4 w-4 rounded-full border border-stone-400" aria-hidden="true" />;
 }
 
 function BottomNavigation() {
