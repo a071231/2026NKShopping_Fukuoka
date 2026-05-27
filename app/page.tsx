@@ -208,7 +208,7 @@ function JourneyBanner() {
 
 function WeatherStrip() {
   return (
-    <section className="mt-12 border-b border-stone-200/70 pb-10">
+    <section className="mt-8 border-b border-stone-200/70 pb-7">
       <div className="flex items-end justify-between gap-4 px-5">
         <div className="min-w-0">
           <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
@@ -219,7 +219,7 @@ function WeatherStrip() {
         <span className="shrink-0 pb-1 text-[11px] text-stone-300">Open-Meteo</span>
       </div>
 
-      <div className="no-scrollbar mt-8 flex snap-x gap-7 overflow-x-auto px-5 pr-12">
+      <div className="no-scrollbar mt-6 flex snap-x gap-7 overflow-x-auto px-5 pr-12">
         {weatherForecast.map((item) => {
           const Icon = weatherIconMap[item.icon];
           return (
