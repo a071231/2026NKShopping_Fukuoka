@@ -15,11 +15,13 @@ import {
   MapPin,
   Navigation,
   PackagePlus,
+  Pencil,
   Phone,
   Plane,
   Plus,
   ReceiptText,
   Shield,
+  StickyNote,
   ShoppingBag,
   Sun,
   Trash2,
@@ -236,29 +238,222 @@ function WeatherStrip() {
 }
 
 function StayCard() {
+  const [hotelLink, setHotelLink] = useState("https://www.jrhotelgroup.com/hotel/192/");
+  const [draftLink, setDraftLink] = useState(hotelLink);
+  const [editingLink, setEditingLink] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesEditing, setNotesEditing] = useState(false);
+  const [noteText, setNoteText] = useState("入住時請確認早餐時間、停車位置與房型資訊。若有訂房確認信或 QR Code，可將截圖上傳到這裡。");
+  const [draftNoteText, setDraftNoteText] = useState(noteText);
+  const [noteImages, setNoteImages] = useState<string[]>([]);
+
+  async function copyStayInfo() {
+    const text = [`住宿資訊`, hotel.name, hotel.dates, hotel.address, hotelLink].join("\n");
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  }
+
+  function saveHotelLink(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextLink = draftLink.trim();
+    if (!nextLink) return;
+    setHotelLink(nextLink);
+    setEditingLink(false);
+  }
+
+  function openNotes() {
+    setDraftNoteText(noteText);
+    setNotesEditing(false);
+    setNotesOpen(true);
+  }
+
+  function saveNotes(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setNoteText(draftNoteText.trim() || "尚未新增備註內容。");
+    setNotesEditing(false);
+  }
+
+  async function addNoteImages(files: FileList | null) {
+    if (!files) return;
+    const readers = Array.from(files)
+      .filter((file) => file.type.startsWith("image/"))
+      .map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.readAsDataURL(file);
+          }),
+      );
+    const images = await Promise.all(readers);
+    setNoteImages((current) => [...current, ...images]);
+  }
+
   return (
-    <section className="mt-8 border-l-[3px] border-[#cf9aa2] py-1 pl-5 pr-5">
-      <div className="border border-stone-200 bg-white/70 shadow-[0_12px_32px_rgba(60,52,42,0.05)]">
-        <img src={hotel.image} alt={hotel.name} className="aspect-[19/8] w-full object-cover" />
-        <div className="flex items-start justify-between gap-4 p-5">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.28em] text-stone-300">住宿資訊</p>
-            <h2 className="mt-2 font-serif text-2xl font-semibold text-[#8f293d]">{hotel.name}</h2>
-            <p className="mt-3 flex items-center gap-2 text-sm text-stone-400">
-              <CalendarDays className="h-4 w-4" />
-              {hotel.dates}
-            </p>
-            <p className="mt-2 flex items-start gap-2 text-sm leading-relaxed text-stone-400">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-              {hotel.address}
-            </p>
+    <>
+      <section className="mt-8 border-l-[3px] border-[#cf9aa2] py-1 pl-5 pr-5">
+        <div className="grid grid-cols-[2fr_minmax(0,3fr)] overflow-hidden border border-stone-200 bg-white/70 shadow-[0_12px_32px_rgba(60,52,42,0.05)]">
+          <img src={hotel.image} alt={hotel.name} className="h-full min-h-[148px] w-full object-cover" />
+          <div className="min-w-0 flex items-start justify-between gap-3 p-4">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-stone-300">住宿資訊</p>
+              <h2 className="mt-2 font-serif text-xl font-semibold leading-tight text-[#8f293d]">{hotel.name}</h2>
+              <p className="mt-3 flex items-center gap-2 text-xs text-stone-400">
+                <CalendarDays className="h-4 w-4" />
+                {hotel.dates}
+              </p>
+              <p className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-stone-400">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                {hotel.address}
+              </p>
+              {editingLink ? (
+                <form onSubmit={saveHotelLink} className="mt-3 flex min-w-0 items-center gap-1">
+                  <input
+                    value={draftLink}
+                    onChange={(event) => setDraftLink(event.target.value)}
+                    className="min-w-0 flex-1 truncate border-b border-[#8f293d]/40 bg-transparent py-1 text-xs text-stone-600 outline-none"
+                    placeholder="貼上住宿連結"
+                    autoFocus
+                  />
+                  <button type="submit" className="shrink-0 rounded-full bg-[#8f293d] px-2 py-1 text-[10px] text-white">
+                    存
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraftLink(hotelLink);
+                      setEditingLink(false);
+                    }}
+                    className="shrink-0 rounded-full border border-stone-200 px-2 py-1 text-[10px] text-stone-400"
+                  >
+                    取消
+                  </button>
+                </form>
+              ) : (
+                <div className="mt-3 flex w-full min-w-0 items-center gap-2 text-xs">
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0 text-[#8f293d]" strokeWidth={1.6} />
+                  <a
+                    href={hotelLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[#8f293d]"
+                  >
+                    連結：{hotelLink}
+                  </a>
+                  <button onClick={() => setEditingLink(true)} className="shrink-0 text-stone-400" aria-label="編輯住宿連結">
+                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.6} />
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={openNotes}
+                className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#8f293d]/20 bg-[#fbfaf7] px-3 py-1.5 text-xs text-[#8f293d]"
+              >
+                <StickyNote className="h-3.5 w-3.5" strokeWidth={1.6} />
+                備註事項
+              </button>
+            </div>
+            <button onClick={copyStayInfo} className="mt-2 shrink-0 text-[#8f293d]" aria-label="複製住宿資訊">
+              <Copy className="h-5 w-5" strokeWidth={1.5} />
+              <span className="sr-only">{copied ? "已複製" : "複製"}</span>
+            </button>
           </div>
-          <button className="mt-2 text-[#8f293d]" aria-label="複製住宿資訊">
-            <Copy className="h-5 w-5" strokeWidth={1.5} />
-          </button>
         </div>
-      </div>
-    </section>
+        {copied ? <p className="mt-2 text-right text-[11px] text-[#8f293d]">已複製住宿資訊</p> : null}
+      </section>
+
+      {notesOpen ? (
+        <div className="fixed inset-0 z-30 bg-stone-950/45 px-4 pt-24 backdrop-blur-sm">
+          <div className="mx-auto max-h-[78vh] max-w-[430px] overflow-y-auto rounded-t-[18px] border border-stone-200 bg-[#fbfaf7] shadow-[0_-16px_44px_rgba(24,22,20,0.2)]">
+            <div className="sticky top-0 z-10 flex items-start justify-between border-b border-stone-100 bg-[#fbfaf7]/95 px-5 py-5 backdrop-blur">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-[#8f293d]">Hotel Note</p>
+                <h3 className="mt-2 font-serif text-2xl font-semibold text-stone-900">備註事項</h3>
+                <p className="mt-1 text-xs text-stone-400">{hotel.name}</p>
+              </div>
+              <button onClick={() => setNotesOpen(false)} className="text-stone-400" aria-label="關閉備註事項">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="px-5 py-5">
+              {notesEditing ? (
+                <form onSubmit={saveNotes}>
+                  <textarea
+                    value={draftNoteText}
+                    onChange={(event) => setDraftNoteText(event.target.value)}
+                    className="min-h-36 w-full resize-none border border-stone-200 bg-white/80 p-4 text-sm leading-7 text-stone-700 outline-none focus:border-[#8f293d]/40"
+                    placeholder="貼上住宿備註、訂房資訊、注意事項..."
+                    autoFocus
+                  />
+                  <label className="mt-4 flex cursor-pointer items-center justify-center rounded-md border border-dashed border-stone-300 bg-white/60 px-4 py-4 text-sm text-stone-500">
+                    上傳圖片
+                    <input type="file" accept="image/*" multiple onChange={(event) => addNoteImages(event.target.files)} className="hidden" />
+                  </label>
+                  <div className="mt-5 flex gap-2">
+                    <button type="submit" className="h-10 flex-1 rounded-full bg-[#3c3631] font-serif text-sm tracking-[0.12em] text-white">
+                      儲存
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftNoteText(noteText);
+                        setNotesEditing(false);
+                      }}
+                      className="h-10 flex-1 rounded-full border border-stone-200 bg-white/70 font-serif text-sm tracking-[0.12em] text-stone-500"
+                    >
+                      取消
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <div className="border-l-2 border-[#8f293d]/50 pl-4">
+                    <p className="whitespace-pre-wrap text-sm leading-8 text-stone-600">{noteText}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setDraftNoteText(noteText);
+                      setNotesEditing(true);
+                    }}
+                    className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#3c3631] px-4 py-2 text-sm text-white"
+                  >
+                    <Pencil className="h-4 w-4" strokeWidth={1.6} />
+                    編輯
+                  </button>
+                </>
+              )}
+
+              {noteImages.length > 0 ? (
+                <div className="mt-6 space-y-3">
+                  {noteImages.map((image, index) => (
+                    <div key={`${image}-${index}`} className="relative overflow-hidden border border-stone-200 bg-white">
+                      <img src={image} alt={`住宿備註圖片 ${index + 1}`} className="h-auto w-full" />
+                      {notesEditing ? (
+                        <button
+                          type="button"
+                          onClick={() => setNoteImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}
+                          className="absolute right-2 top-2 rounded-full bg-white/90 p-1 text-stone-500 shadow"
+                          aria-label="刪除備註圖片"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-6 border border-dashed border-stone-200 bg-white/50 px-4 py-5 text-center text-xs text-stone-300">
+                  尚未上傳圖片
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
