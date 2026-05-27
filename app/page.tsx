@@ -181,18 +181,6 @@ function DateRail({
           );
         })}
       </nav>
-      <div className="flex shrink-0 border-l border-stone-200">
-        <button onClick={() => setView("ledger")} className={cn("relative w-12 pb-3 pt-1 text-center text-stone-400", view === "ledger" && "text-stone-900")}>
-          <ReceiptText className="mx-auto h-4 w-4" strokeWidth={1.6} />
-          <span className="mt-1 block text-xs">帳</span>
-          {view === "ledger" ? <span className="absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-stone-900" /> : null}
-        </button>
-        <button onClick={() => setView("tools")} className={cn("relative w-12 pb-3 pt-1 text-center text-stone-300", view === "tools" && "text-stone-900")}>
-          <Info className="mx-auto h-4 w-4" strokeWidth={1.6} />
-          <span className="mt-1 block text-xs">訊</span>
-          {view === "tools" ? <span className="absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-stone-900" /> : null}
-        </button>
-      </div>
     </div>
   );
 }
@@ -557,7 +545,6 @@ function ChecklistView() {
   const [adding, setAdding] = useState(false);
   const [categoryId, setCategoryId] = useState(initialChecklist[0].id);
   const [label, setLabel] = useState("");
-
   const totalItems = categories.reduce((sum, category) => sum + category.items.length, 0);
   const doneItems = categories.reduce((sum, category) => sum + category.items.filter((item) => item.done).length, 0);
 
