@@ -104,7 +104,6 @@ const initialChecklist: ChecklistCategory[] = [
 export default function HomePage() {
   const [view, setView] = useState<View>("home");
   const [selectedDate, setSelectedDate] = useState(tripDays[0].date);
-  const selectedDay = tripDays.find((day) => day.date === selectedDate) ?? tripDays[0];
   const dayItems = useMemo(() => itinerary.filter((item) => item.date === selectedDate), [selectedDate]);
 
   return (
@@ -120,7 +119,7 @@ export default function HomePage() {
           <ChecklistView />
         ) : (
           <>
-            <JourneyBanner day={selectedDay} />
+            <JourneyBanner />
             <WeatherStripPaged />
             <StayCard />
             <Timeline dayItems={dayItems} />
@@ -186,19 +185,14 @@ function DateRail({
   );
 }
 
-function JourneyBanner({ day }: { day: (typeof tripDays)[number] }) {
+function JourneyBanner() {
   return (
-    <section className="relative mx-[60px] mt-1 overflow-hidden border border-stone-200 bg-stone-900 shadow-[0_12px_24px_rgba(58,51,44,0.2)]">
-      <img src={hotel.image} alt="福岡旅行" className="h-[102px] w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-black/30" />
-      <div className="absolute inset-x-0 bottom-0 p-3 text-white">
-        <p className="flex items-center gap-1 text-[10px] uppercase tracking-[0.16em] text-white/70">
-          {day.label}
-          <MapPin className="h-3 w-3" />
-          {day.city}
-        </p>
-        <h2 className="mt-1 font-serif text-xl font-semibold tracking-[0.08em]">福岡旅行 2026</h2>
-      </div>
+    <section className="mx-8 mt-6 overflow-hidden rounded-md border border-stone-200 bg-stone-100 shadow-[0_16px_32px_rgba(58,51,44,0.14)]">
+      <img
+        src="https://images.unsplash.com/photo-1542640244-7e672d6cef4e?auto=format&fit=crop&w=1400&q=82"
+        alt="福岡旅行形象橫幅"
+        className="aspect-[16/9] w-full object-cover"
+      />
     </section>
   );
 }
