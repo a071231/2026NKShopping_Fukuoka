@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ComponentType } from "react";
+import { FormEvent, useMemo, useState, type ComponentType } from "react";
 import {
   CalendarDays,
   Car,
@@ -10,15 +10,37 @@ import {
   Info,
   MapPin,
   Navigation,
+  Plane,
+  Plus,
   ReceiptText,
   ShoppingBag,
   Sun,
-  TrainFront,
+  Trash2,
   Utensils,
+  X,
 } from "lucide-react";
 
 import { hotel, itinerary, tripDays, weatherForecast, type ItineraryCategory } from "@/data/trip";
 import { cn } from "@/lib/utils";
+
+type View = "home" | "tools" | "ledger" | "checklist";
+type Payer = "K" | "M" | "E" | "G" | "J";
+type Expense = {
+  id: string;
+  title: string;
+  amount: number;
+  payer: Payer;
+  note?: string;
+  paid?: boolean;
+};
+
+const payerStyle: Record<Payer, string> = {
+  K: "border-blue-200 bg-blue-50 text-blue-600",
+  M: "border-pink-200 bg-pink-50 text-pink-600",
+  E: "border-amber-200 bg-amber-50 text-amber-700",
+  G: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  J: "border-violet-200 bg-violet-50 text-violet-700",
+};
 
 const categoryMeta: Record<
   ItineraryCategory,
@@ -30,14 +52,18 @@ const categoryMeta: Record<
   景點: { en: "ACTIVITY", icon: Navigation, color: "text-emerald-700" },
 };
 
-const navItems = [
-  { label: "首頁", icon: Home, active: true },
-  { label: "資訊", icon: Info },
-  { label: "記帳", icon: ReceiptText },
-  { label: "準備清單", icon: CheckSquare },
+const initialExpenses: Expense[] = [
+  { id: "e1", title: "星宇航空機票", amount: 148100, payer: "K", paid: true },
+  { id: "e2", title: "The Blossom Kumamoto x1晚", amount: 15383, payer: "K", paid: true },
+  { id: "e3", title: "月洸樹 黑川 x1晚", amount: 81503, payer: "K" },
+  { id: "e4", title: "由布院 玉の湯 x1晚", amount: 55941, payer: "M" },
+  { id: "e5", title: "Grand Hyatt Fukuoka x3晚", amount: 123105, payer: "E", paid: true },
+  { id: "e6", title: "觀光列車車票", amount: 24895, payer: "G", paid: true },
+  { id: "e7", title: "D1 午餐 魚飯時", amount: 3458, payer: "J", paid: true },
 ];
 
 export default function HomePage() {
+  const [view, setView] = useState<View>("home");
   const [selectedDate, setSelectedDate] = useState(tripDays[0].date);
   const selectedDay = tripDays.find((day) => day.date === selectedDate) ?? tripDays[0];
   const dayItems = useMemo(
@@ -47,16 +73,22 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#f8f6f1] text-[#2c2925]">
-      <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#fbfaf7] pb-36 shadow-[0_0_80px_rgba(60,52,42,0.08)] md:max-w-[430px]">
+      <div className="mx-auto min-h-screen w-full max-w-[430px] bg-[#fbfaf7] pb-28 shadow-[0_0_80px_rgba(60,52,42,0.08)]">
         <TripHeader />
-        <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} />
-        <JourneyBanner day={selectedDay} />
-        <WeatherStripPaged />
-        <StayCard />
-        <Timeline dayItems={dayItems} />
+        <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} view={view} setView={setView} />
+        {view === "ledger" ? (
+          <LedgerView />
+        ) : (
+          <>
+            <JourneyBanner day={selectedDay} />
+            <WeatherStripPaged />
+            <StayCard />
+            <Timeline dayItems={dayItems} />
+          </>
+        )}
       </div>
 
-      <BottomNavigation />
+      <BottomNavigation view={view} setView={setView} />
     </main>
   );
 }
@@ -82,43 +114,57 @@ function TripHeader() {
 function DateRail({
   selectedDate,
   onSelect,
+  view,
+  setView,
 }: {
   selectedDate: string;
   onSelect: (date: string) => void;
+  view: View;
+  setView: (view: View) => void;
 }) {
   return (
-    <nav className="no-scrollbar mt-6 flex overflow-x-auto border-b border-stone-200/70 px-2">
-      {tripDays.map((day) => {
-        const active = day.date === selectedDate;
-        return (
-          <button
-            key={day.date}
-            onClick={() => onSelect(day.date)}
-            className="relative shrink-0 basis-[calc(100%/6.5)] pb-3 text-center"
-          >
-            <span
-              className={cn(
-                "block text-[10px] font-semibold tracking-[0.16em]",
-                active ? "text-stone-900" : "text-stone-300",
-              )}
+    <div className="mt-6 flex border-b border-stone-200/70">
+      <nav className="no-scrollbar flex min-w-0 flex-1 overflow-x-auto px-2">
+        {tripDays.map((day) => {
+          const active = day.date === selectedDate && view === "home";
+          return (
+            <button
+              key={day.date}
+              onClick={() => {
+                onSelect(day.date);
+                setView("home");
+              }}
+              className="relative shrink-0 basis-[calc(100%/6.5)] pb-3 text-center"
             >
-              {day.weekday}
-            </span>
-            <span
-              className={cn(
-                "mt-1 block font-serif text-2xl leading-none",
-                active ? "text-stone-950" : "text-stone-300",
-              )}
-            >
-              {day.day}
-            </span>
-            {active ? (
-              <span className="absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#8f293d]" />
-            ) : null}
-          </button>
-        );
-      })}
-    </nav>
+              <span className={cn("block text-[10px] font-semibold tracking-[0.16em]", active ? "text-stone-900" : "text-stone-300")}>
+                {day.weekday}
+              </span>
+              <span className={cn("mt-1 block font-serif text-2xl leading-none", active ? "text-stone-950" : "text-stone-300")}>
+                {day.day}
+              </span>
+              {active ? <span className="absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#8f293d]" /> : null}
+            </button>
+          );
+        })}
+      </nav>
+      <div className="flex shrink-0 border-l border-stone-200">
+        <button
+          onClick={() => setView("ledger")}
+          className={cn("relative w-52 pb-3 pt-1 text-center text-stone-400", view === "ledger" && "text-stone-900")}
+        >
+          <ReceiptText className="mx-auto h-4 w-4" strokeWidth={1.6} />
+          <span className="mt-1 block text-xs">帳</span>
+          {view === "ledger" ? <span className="absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-stone-900" /> : null}
+        </button>
+        <button
+          onClick={() => setView("tools")}
+          className={cn("relative w-52 pb-3 pt-1 text-center text-stone-300", view === "tools" && "text-stone-900")}
+        >
+          <Info className="mx-auto h-4 w-4" strokeWidth={1.6} />
+          <span className="mt-1 block text-xs">訊</span>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -158,7 +204,6 @@ function WeatherStripPaged() {
         </div>
         <span className="text-[10px] text-stone-300">Open-Meteo</span>
       </div>
-
       <div className="mt-7 grid grid-cols-5 px-2">
         {visibleWeather.map((item) => (
           <div key={item.date} className="px-1 text-center">
@@ -170,18 +215,12 @@ function WeatherStripPaged() {
           </div>
         ))}
       </div>
-
       <div className="mt-6 flex items-center justify-center gap-2">
         {Array.from({ length: totalPages }, (_, index) => (
           <button
             key={index}
             onClick={() => setPage(index)}
-            className={cn(
-              "h-7 min-w-7 rounded-full border px-2 font-serif text-xs transition",
-              page === index
-                ? "border-[#8f293d] bg-[#8f293d] text-white"
-                : "border-stone-200 bg-white/70 text-stone-400",
-            )}
+            className={cn("h-7 min-w-7 rounded-full border px-2 font-serif text-xs transition", page === index ? "border-[#8f293d] bg-[#8f293d] text-white" : "border-stone-200 bg-white/70 text-stone-400")}
             aria-label={`顯示第 ${index + 1} 頁天氣`}
           >
             {index + 1}
@@ -200,9 +239,7 @@ function StayCard() {
         <div className="flex items-start justify-between gap-4 p-5">
           <div>
             <p className="text-[11px] uppercase tracking-[0.28em] text-stone-300">住宿資訊</p>
-            <h2 className="mt-2 font-serif text-2xl font-semibold text-[#8f293d]">
-              {hotel.name}
-            </h2>
+            <h2 className="mt-2 font-serif text-2xl font-semibold text-[#8f293d]">{hotel.name}</h2>
             <p className="mt-3 flex items-center gap-2 text-sm text-stone-400">
               <CalendarDays className="h-4 w-4" />
               {hotel.dates}
@@ -241,26 +278,15 @@ function Timeline({ dayItems }: { dayItems: typeof itinerary }) {
             const Icon = meta.icon;
             return (
               <article key={item.id} className="relative grid grid-cols-[82px_1fr] gap-5">
-                <time className="pt-1 font-serif text-2xl font-semibold text-stone-900">
-                  {item.time}
-                </time>
+                <time className="pt-1 font-serif text-2xl font-semibold text-stone-900">{item.time}</time>
                 <div className="relative border-l border-stone-200 pl-6">
                   <span className="absolute -left-[5px] top-3 h-2.5 w-2.5 rounded-full border border-stone-300 bg-[#fbfaf7]" />
-                  <h3 className="font-serif text-xl font-semibold tracking-[0.02em] text-stone-900">
-                    {item.title}
-                  </h3>
-                  <div
-                    className={cn(
-                      "mt-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em]",
-                      meta.color,
-                    )}
-                  >
+                  <h3 className="font-serif text-xl font-semibold tracking-[0.02em] text-stone-900">{item.title}</h3>
+                  <div className={cn("mt-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em]", meta.color)}>
                     <Icon className="h-3.5 w-3.5" strokeWidth={1.5} />
                     <span>{meta.en}</span>
                   </div>
-                  <p className="mt-3 line-clamp-2 text-sm leading-7 text-stone-500">
-                    {item.description}
-                  </p>
+                  <p className="mt-3 line-clamp-2 text-sm leading-7 text-stone-500">{item.description}</p>
                   <p className="mt-3 text-xs leading-relaxed text-stone-300">{item.address}</p>
                 </div>
               </article>
@@ -272,7 +298,171 @@ function Timeline({ dayItems }: { dayItems: typeof itinerary }) {
   );
 }
 
-function BottomNavigation() {
+function LedgerView() {
+  const [expenses, setExpenses] = useState(initialExpenses);
+  const [filter, setFilter] = useState<"all" | Payer>("all");
+  const [adding, setAdding] = useState(false);
+  const [title, setTitle] = useState("");
+  const [amount, setAmount] = useState("");
+  const [payer, setPayer] = useState<Payer>("K");
+
+  const visibleExpenses = filter === "all" ? expenses : expenses.filter((item) => item.payer === filter);
+  const total = expenses.reduce((sum, item) => sum + item.amount, 0);
+
+  function addExpense(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const parsedAmount = Number(amount.replace(/,/g, ""));
+    if (!title.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
+    setExpenses((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        title: title.trim(),
+        amount: Math.round(parsedAmount),
+        payer,
+      },
+    ]);
+    setTitle("");
+    setAmount("");
+    setPayer("K");
+    setAdding(false);
+  }
+
+  return (
+    <section className="px-5 pt-7">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <ReceiptText className="h-5 w-5 text-stone-700" strokeWidth={1.7} />
+            <h2 className="font-serif text-3xl font-semibold tracking-[0.04em] text-stone-900">
+              旅行帳本
+            </h2>
+          </div>
+          <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
+            Online
+          </span>
+        </div>
+        <div className="text-right text-xs text-stone-300">
+          <p>全部顯示</p>
+          <p>{expenses.length} 筆項目</p>
+        </div>
+      </div>
+
+      <div className="mt-5 flex gap-2">
+        {(["all", "K", "M", "E", "G", "J"] as const).map((item) => (
+          <button
+            key={item}
+            onClick={() => setFilter(item)}
+            className={cn(
+              "flex h-8 min-w-8 items-center justify-center rounded-full border px-3 font-serif text-sm",
+              filter === item ? "border-[#3c3631] bg-[#3c3631] text-white" : "border-stone-200 bg-white text-stone-400",
+            )}
+          >
+            {item === "all" ? "全部" : item}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-6 border border-stone-200 bg-white/72 shadow-[0_12px_34px_rgba(60,52,42,0.05)]">
+        <div className="border-b border-stone-200 p-6">
+          <p className="text-sm text-stone-400">總金額（台幣）</p>
+          <p className="mt-2 font-serif text-5xl font-semibold text-stone-900">
+            ${total.toLocaleString()}
+          </p>
+          <p className="mt-2 text-sm font-semibold text-stone-500">
+            每人均攤: ${Math.round(total / 5).toLocaleString()}
+          </p>
+        </div>
+
+        {visibleExpenses.map((expense) => (
+          <div key={expense.id} className="flex items-center justify-between border-b border-stone-100 p-4 last:border-b-0">
+            <div>
+              <p className="font-semibold text-stone-800">{expense.title}</p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className={cn("inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs", payerStyle[expense.payer])}>
+                  {expense.payer}
+                </span>
+                <span className="rounded bg-stone-50 px-2 py-0.5 text-[10px] text-stone-400">
+                  {expense.paid ? "已付" : "未付"}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="font-mono text-sm font-semibold text-stone-600">${expense.amount.toLocaleString()}</p>
+              <button
+                onClick={() => setExpenses((current) => current.filter((item) => item.id !== expense.id))}
+                className="text-stone-300"
+                aria-label="刪除款項"
+              >
+                <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {adding ? (
+        <form onSubmit={addExpense} className="mt-5 border border-stone-200 bg-white/90 p-5 shadow-[0_12px_34px_rgba(60,52,42,0.07)]">
+          <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+            <p className="text-sm tracking-[0.18em] text-stone-400">新增款項</p>
+            <button type="button" onClick={() => setAdding(false)} className="text-stone-400" aria-label="關閉新增款項">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="款項名稱"
+            className="mt-5 w-full border-b border-stone-300 bg-transparent py-3 text-xl outline-none placeholder:text-stone-300"
+            autoFocus
+          />
+          <div className="mt-5 flex items-end gap-3">
+            <input
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              inputMode="numeric"
+              placeholder="0"
+              className="min-w-0 flex-1 border-b border-stone-300 bg-transparent py-3 font-serif text-4xl outline-none placeholder:text-stone-200"
+            />
+            <span className="border border-stone-200 bg-stone-50 px-4 py-3 font-serif text-sm text-stone-500">JPY</span>
+          </div>
+          <div className="mt-5 flex gap-2">
+            {(["K", "M", "E", "G", "J"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setPayer(item)}
+                className={cn("h-9 w-9 rounded-full border font-serif text-sm", payer === item ? payerStyle[item] : "border-stone-200 text-stone-300")}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          <button type="submit" className="mt-6 h-12 w-full bg-[#3c3631] font-serif text-lg tracking-[0.16em] text-white">
+            完成新增
+          </button>
+        </form>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="mt-12 flex h-14 w-full items-center justify-center gap-2 bg-[#3c3631] font-serif text-lg tracking-[0.18em] text-white shadow-[0_12px_22px_rgba(60,52,42,0.18)]"
+        >
+          <Plus className="h-4 w-4" />
+          記一筆
+        </button>
+      )}
+    </section>
+  );
+}
+
+function BottomNavigation({ view, setView }: { view: View; setView: (view: View) => void }) {
+  const navItems = [
+    { id: "home" as const, label: "首頁", icon: Home },
+    { id: "tools" as const, label: "資訊", icon: Info },
+    { id: "ledger" as const, label: "記帳", icon: ReceiptText },
+    { id: "checklist" as const, label: "準備清單", icon: CheckSquare },
+  ];
+
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-[#fbfaf7]/92 px-3 pb-[max(0.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl">
       <div className="mx-auto grid max-w-[390px] grid-cols-4">
@@ -280,11 +470,9 @@ function BottomNavigation() {
           const Icon = item.icon;
           return (
             <button
-              key={item.label}
-              className={cn(
-                "flex h-12 flex-col items-center justify-center gap-1 text-[11px]",
-                item.active ? "text-[#8f293d]" : "text-stone-400",
-              )}
+              key={item.id}
+              onClick={() => setView(item.id)}
+              className={cn("flex h-12 flex-col items-center justify-center gap-1 text-[11px]", view === item.id ? "text-[#8f293d]" : "text-stone-400")}
             >
               <Icon className="h-4 w-4" strokeWidth={1.6} />
               <span>{item.label}</span>
