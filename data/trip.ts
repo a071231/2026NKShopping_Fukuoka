@@ -24,12 +24,7 @@ export const tripDays = [
   { date: "2026-10-11", weekday: "SUN", day: "11", label: "DAY 9", city: "返程" },
 ];
 
-export const weatherForecast: Array<{
-  date: string;
-  weekday: string;
-  high: string;
-  icon: WeatherIcon;
-}> = [
+export const weatherForecast: Array<{ date: string; weekday: string; high: string; icon: WeatherIcon }> = [
   { date: "5/15", weekday: "FRI", high: "25°", icon: "sun" },
   { date: "5/16", weekday: "SAT", high: "23°", icon: "cloud" },
   { date: "5/17", weekday: "SUN", high: "22°", icon: "rain" },

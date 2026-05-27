@@ -1,6 +1,14 @@
 "use client";
 
-import { FormEvent, useMemo, useState, type ComponentType } from "react";
+import {
+  type ComponentType,
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   CalendarDays,
   Car,
@@ -21,8 +29,8 @@ import {
   Plus,
   ReceiptText,
   Shield,
-  StickyNote,
   ShoppingBag,
+  StickyNote,
   Sun,
   Trash2,
   Utensils,
@@ -39,6 +47,8 @@ type ChecklistItem = { id: string; label: string; done: boolean };
 type ChecklistCategory = { id: string; title: string; accent: string; items: ChecklistItem[] };
 
 const mapUrl = "https://maps.app.goo.gl/oYZVFgyA9oiwbB7Q7";
+const defaultHotelLink = "https://www.jrhotelgroup.com/hotel/192/";
+const defaultHotelNote = "入住時請確認早餐時間、停車位置與房型資訊。若有訂房確認信或 QR Code，可將截圖上傳到這裡。";
 
 const payerStyle: Record<Payer, string> = {
   K: "border-blue-200 bg-blue-50 text-blue-600",
@@ -111,6 +121,32 @@ const initialChecklist: ChecklistCategory[] = [
   },
 ];
 
+function useStoredState<T>(key: string, initialValue: T): [T, Dispatch<SetStateAction<T>>] {
+  const [value, setValue] = useState<T>(initialValue);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedValue = window.localStorage.getItem(key);
+      if (storedValue) setValue(JSON.parse(storedValue) as T);
+    } catch {
+      // Keep defaults.
+    }
+    setLoaded(true);
+  }, [key]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // Large uploaded images can exceed browser storage.
+    }
+  }, [key, loaded, value]);
+
+  return [value, setValue];
+}
+
 export default function HomePage() {
   const [view, setView] = useState<View>("home");
   const [selectedDate, setSelectedDate] = useState(tripDays[0].date);
@@ -148,7 +184,7 @@ function TripHeader() {
       <p className="text-[10px] font-medium uppercase tracking-[0.34em] text-stone-400">Family Trip</p>
       <div className="mt-2 flex items-center justify-center gap-3">
         <h1 className="font-serif text-xl font-semibold tracking-[0.12em] text-stone-950">福岡旅行</h1>
-        <span className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white/80 font-serif text-[11px] text-stone-500">
+        <span className="flex h-10 w-10 items-center justify-center border border-stone-200 bg-white/80 font-serif text-[11px] text-stone-500">
           2026
         </span>
       </div>
@@ -187,7 +223,7 @@ function DateRail({
               <span className={cn("mt-1 block font-serif text-2xl leading-none", active ? "text-stone-950" : "text-stone-300")}>
                 {day.day}
               </span>
-              {active ? <span className="absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#8f293d]" /> : null}
+              {active ? <span className="absolute bottom-0 left-1/2 h-1.5 w-1.5 -translate-x-1/2 bg-[#8f293d]" /> : null}
             </button>
           );
         })}
@@ -198,7 +234,7 @@ function DateRail({
 
 function JourneyBanner() {
   return (
-    <section className="mx-8 mt-6 overflow-hidden rounded-md border border-stone-200 bg-stone-100 shadow-[0_16px_32px_rgba(58,51,44,0.14)]">
+    <section className="mx-8 mt-6 overflow-hidden border border-stone-200 bg-stone-100 shadow-[0_16px_32px_rgba(58,51,44,0.14)]">
       <img
         src="https://images.unsplash.com/photo-1542640244-7e672d6cef4e?auto=format&fit=crop&w=1400&q=82"
         alt="福岡旅行形象橫幅"
@@ -212,15 +248,12 @@ function WeatherStrip() {
   return (
     <section className="mt-8 border-b border-stone-200/70 pb-7">
       <div className="flex items-end justify-between gap-4 px-5">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
-            <h2 className="font-serif text-2xl font-semibold leading-none tracking-[0.04em] text-stone-900">福岡市</h2>
-            <p className="pb-1 text-sm font-semibold tracking-[0.08em] text-stone-400">近11天當地天氣預報</p>
-          </div>
+        <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+          <h2 className="font-serif text-2xl font-semibold leading-none tracking-[0.04em] text-stone-900">福岡市</h2>
+          <p className="pb-1 text-sm font-semibold tracking-[0.08em] text-stone-400">近11天當地天氣預報</p>
         </div>
         <span className="shrink-0 pb-1 text-[11px] text-stone-300">Open-Meteo</span>
       </div>
-
       <div className="no-scrollbar mt-6 flex snap-x gap-7 overflow-x-auto px-5 pr-12">
         {weatherForecast.map((item) => {
           const Icon = weatherIconMap[item.icon];
@@ -238,19 +271,22 @@ function WeatherStrip() {
 }
 
 function StayCard() {
-  const [hotelLink, setHotelLink] = useState("https://www.jrhotelgroup.com/hotel/192/");
+  const [hotelLink, setHotelLink] = useStoredState("nk-trip-hotel-link", defaultHotelLink);
   const [draftLink, setDraftLink] = useState(hotelLink);
   const [editingLink, setEditingLink] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesEditing, setNotesEditing] = useState(false);
-  const [noteText, setNoteText] = useState("入住時請確認早餐時間、停車位置與房型資訊。若有訂房確認信或 QR Code，可將截圖上傳到這裡。");
+  const [noteText, setNoteText] = useStoredState("nk-trip-hotel-note-text", defaultHotelNote);
   const [draftNoteText, setDraftNoteText] = useState(noteText);
-  const [noteImages, setNoteImages] = useState<string[]>([]);
+  const [noteImages, setNoteImages] = useStoredState<string[]>("nk-trip-hotel-note-images", []);
+
+  useEffect(() => {
+    if (!editingLink) setDraftLink(hotelLink);
+  }, [editingLink, hotelLink]);
 
   async function copyStayInfo() {
-    const text = [`住宿資訊`, hotel.name, hotel.dates, hotel.address, hotelLink].join("\n");
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(["住宿資訊", hotel.name, hotel.dates, hotel.address, hotelLink].join("\n"));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
@@ -277,17 +313,18 @@ function StayCard() {
 
   async function addNoteImages(files: FileList | null) {
     if (!files) return;
-    const readers = Array.from(files)
-      .filter((file) => file.type.startsWith("image/"))
-      .map(
-        (file) =>
-          new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result));
-            reader.readAsDataURL(file);
-          }),
-      );
-    const images = await Promise.all(readers);
+    const images = await Promise.all(
+      Array.from(files)
+        .filter((file) => file.type.startsWith("image/"))
+        .map(
+          (file) =>
+            new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result));
+              reader.readAsDataURL(file);
+            }),
+        ),
+    );
     setNoteImages((current) => [...current, ...images]);
   }
 
@@ -296,7 +333,7 @@ function StayCard() {
       <section className="mt-8 border-l-[3px] border-[#cf9aa2] py-1 pl-5 pr-5">
         <div className="grid grid-cols-[2fr_minmax(0,3fr)] overflow-hidden border border-stone-200 bg-white/70 shadow-[0_12px_32px_rgba(60,52,42,0.05)]">
           <img src={hotel.image} alt={hotel.name} className="h-full min-h-[148px] w-full object-cover" />
-          <div className="min-w-0 flex items-start justify-between gap-3 p-4">
+          <div className="flex min-w-0 items-start justify-between gap-3 p-4">
             <div className="min-w-0">
               <p className="text-[11px] uppercase tracking-[0.28em] text-stone-300">住宿資訊</p>
               <h2 className="mt-2 font-serif text-xl font-semibold leading-tight text-[#8f293d]">{hotel.name}</h2>
@@ -317,7 +354,7 @@ function StayCard() {
                     placeholder="貼上住宿連結"
                     autoFocus
                   />
-                  <button type="submit" className="shrink-0 rounded-full bg-[#8f293d] px-2 py-1 text-[10px] text-white">
+                  <button type="submit" className="shrink-0 bg-[#8f293d] px-2 py-1 text-[10px] text-white">
                     存
                   </button>
                   <button
@@ -326,7 +363,7 @@ function StayCard() {
                       setDraftLink(hotelLink);
                       setEditingLink(false);
                     }}
-                    className="shrink-0 rounded-full border border-stone-200 px-2 py-1 text-[10px] text-stone-400"
+                    className="shrink-0 border border-stone-200 px-2 py-1 text-[10px] text-stone-400"
                   >
                     取消
                   </button>
@@ -334,12 +371,7 @@ function StayCard() {
               ) : (
                 <div className="mt-3 flex w-full min-w-0 items-center gap-2 text-xs">
                   <ExternalLink className="h-3.5 w-3.5 shrink-0 text-[#8f293d]" strokeWidth={1.6} />
-                  <a
-                    href={hotelLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[#8f293d]"
-                  >
+                  <a href={hotelLink} target="_blank" rel="noreferrer" className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[#8f293d]">
                     連結：{hotelLink}
                   </a>
                   <button onClick={() => setEditingLink(true)} className="shrink-0 text-stone-400" aria-label="編輯住宿連結">
@@ -347,17 +379,13 @@ function StayCard() {
                   </button>
                 </div>
               )}
-              <button
-                onClick={openNotes}
-                className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#8f293d]/20 bg-[#fbfaf7] px-3 py-1.5 text-xs text-[#8f293d]"
-              >
+              <button onClick={openNotes} className="mt-3 inline-flex items-center gap-2 border border-[#8f293d]/20 bg-[#fbfaf7] px-3 py-1.5 text-xs text-[#8f293d]">
                 <StickyNote className="h-3.5 w-3.5" strokeWidth={1.6} />
                 備註事項
               </button>
             </div>
             <button onClick={copyStayInfo} className="mt-2 shrink-0 text-[#8f293d]" aria-label="複製住宿資訊">
               <Copy className="h-5 w-5" strokeWidth={1.5} />
-              <span className="sr-only">{copied ? "已複製" : "複製"}</span>
             </button>
           </div>
         </div>
@@ -366,7 +394,7 @@ function StayCard() {
 
       {notesOpen ? (
         <div className="fixed inset-0 z-30 bg-stone-950/45 px-4 pt-24 backdrop-blur-sm">
-          <div className="mx-auto max-h-[78vh] max-w-[430px] overflow-y-auto rounded-t-[18px] border border-stone-200 bg-[#fbfaf7] shadow-[0_-16px_44px_rgba(24,22,20,0.2)]">
+          <div className="mx-auto max-h-[78vh] max-w-[430px] overflow-y-auto border border-stone-200 bg-[#fbfaf7] shadow-[0_-16px_44px_rgba(24,22,20,0.2)]">
             <div className="sticky top-0 z-10 flex items-start justify-between border-b border-stone-100 bg-[#fbfaf7]/95 px-5 py-5 backdrop-blur">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.24em] text-[#8f293d]">Hotel Note</p>
@@ -377,7 +405,6 @@ function StayCard() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-
             <div className="px-5 py-5">
               {notesEditing ? (
                 <form onSubmit={saveNotes}>
@@ -388,22 +415,15 @@ function StayCard() {
                     placeholder="貼上住宿備註、訂房資訊、注意事項..."
                     autoFocus
                   />
-                  <label className="mt-4 flex cursor-pointer items-center justify-center rounded-md border border-dashed border-stone-300 bg-white/60 px-4 py-4 text-sm text-stone-500">
+                  <label className="mt-4 flex cursor-pointer items-center justify-center border border-dashed border-stone-300 bg-white/60 px-4 py-4 text-sm text-stone-500">
                     上傳圖片
                     <input type="file" accept="image/*" multiple onChange={(event) => addNoteImages(event.target.files)} className="hidden" />
                   </label>
                   <div className="mt-5 flex gap-2">
-                    <button type="submit" className="h-10 flex-1 rounded-full bg-[#3c3631] font-serif text-sm tracking-[0.12em] text-white">
+                    <button type="submit" className="h-10 flex-1 bg-[#3c3631] font-serif text-sm tracking-[0.12em] text-white">
                       儲存
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDraftNoteText(noteText);
-                        setNotesEditing(false);
-                      }}
-                      className="h-10 flex-1 rounded-full border border-stone-200 bg-white/70 font-serif text-sm tracking-[0.12em] text-stone-500"
-                    >
+                    <button type="button" onClick={() => setNotesEditing(false)} className="h-10 flex-1 border border-stone-200 bg-white/70 font-serif text-sm tracking-[0.12em] text-stone-500">
                       取消
                     </button>
                   </div>
@@ -418,14 +438,13 @@ function StayCard() {
                       setDraftNoteText(noteText);
                       setNotesEditing(true);
                     }}
-                    className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#3c3631] px-4 py-2 text-sm text-white"
+                    className="mt-5 inline-flex items-center gap-2 bg-[#3c3631] px-4 py-2 text-sm text-white"
                   >
                     <Pencil className="h-4 w-4" strokeWidth={1.6} />
                     編輯
                   </button>
                 </>
               )}
-
               {noteImages.length > 0 ? (
                 <div className="mt-6 space-y-3">
                   {noteImages.map((image, index) => (
@@ -435,7 +454,7 @@ function StayCard() {
                         <button
                           type="button"
                           onClick={() => setNoteImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}
-                          className="absolute right-2 top-2 rounded-full bg-white/90 p-1 text-stone-500 shadow"
+                          className="absolute right-2 top-2 bg-white/90 p-1 text-stone-500 shadow"
                           aria-label="刪除備註圖片"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -445,9 +464,7 @@ function StayCard() {
                   ))}
                 </div>
               ) : (
-                <p className="mt-6 border border-dashed border-stone-200 bg-white/50 px-4 py-5 text-center text-xs text-stone-300">
-                  尚未上傳圖片
-                </p>
+                <p className="mt-6 border border-dashed border-stone-200 bg-white/50 px-4 py-5 text-center text-xs text-stone-300">尚未上傳圖片</p>
               )}
             </div>
           </div>
@@ -479,7 +496,7 @@ function Timeline({ dayItems }: { dayItems: typeof itinerary }) {
               <article key={item.id} className="relative grid grid-cols-[82px_1fr] gap-5">
                 <time className="pt-1 font-serif text-2xl font-semibold text-stone-900">{item.time}</time>
                 <div className="relative border-l border-stone-200 pl-6">
-                  <span className="absolute -left-[5px] top-3 h-2.5 w-2.5 rounded-full border border-stone-300 bg-[#fbfaf7]" />
+                  <span className="absolute -left-[5px] top-3 h-2.5 w-2.5 border border-stone-300 bg-[#fbfaf7]" />
                   <h3 className="font-serif text-xl font-semibold tracking-[0.02em] text-stone-900">{item.title}</h3>
                   <div className={cn("mt-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em]", meta.color)}>
                     <Icon className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -512,8 +529,7 @@ function ToolsView() {
   return (
     <section className="px-5 pt-6">
       <p className="text-sm tracking-[0.08em] text-stone-500">全覽地圖與重要資訊</p>
-
-      <div className="mt-8 overflow-hidden rounded-xl border border-blue-100 bg-white shadow-[0_12px_30px_rgba(60,52,42,0.06)]">
+      <div className="mt-8 overflow-hidden border border-blue-100 bg-white shadow-[0_12px_30px_rgba(60,52,42,0.06)]">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2 text-teal-700">
             <Map className="h-4 w-4" />
@@ -526,13 +542,13 @@ function ToolsView() {
           {["福岡", "熊本", "阿蘇", "由布院", "北九州"].map((city, index) => (
             <span
               key={city}
-              className="absolute rounded-full border-2 border-white bg-[#8f293d] px-2 py-1 text-xs font-semibold text-white shadow"
+              className="absolute border-2 border-white bg-[#8f293d] px-2 py-1 text-xs font-semibold text-white shadow"
               style={{ left: `${18 + index * 14}%`, top: `${30 + (index % 3) * 14}%` }}
             >
               {city}
             </span>
           ))}
-          <div className="absolute right-3 bottom-4 overflow-hidden rounded border border-stone-300 bg-white shadow">
+          <div className="absolute right-3 bottom-4 overflow-hidden border border-stone-300 bg-white shadow">
             <div className="px-3 py-1 text-xl">+</div>
             <div className="border-t px-3 py-1 text-xl">−</div>
           </div>
@@ -558,14 +574,14 @@ function ToolsView() {
         </div>
       </section>
 
-      <a href="https://www.vjw.digital.go.jp/" target="_blank" rel="noreferrer" className="mt-5 block overflow-hidden rounded-md bg-[#191817] p-7 text-white shadow-[0_12px_28px_rgba(24,22,20,0.25)]">
-        <span className="rounded bg-[#c64f6b] px-3 py-1 text-xs font-semibold tracking-[0.18em]">MUST HAVE</span>
+      <a href="https://www.vjw.digital.go.jp/" target="_blank" rel="noreferrer" className="mt-5 block overflow-hidden bg-[#191817] p-7 text-white shadow-[0_12px_28px_rgba(24,22,20,0.25)]">
+        <span className="bg-[#c64f6b] px-3 py-1 text-xs font-semibold tracking-[0.18em]">MUST HAVE</span>
         <div className="mt-5 flex items-center justify-between">
           <div>
             <h2 className="font-serif text-3xl font-semibold">Visit Japan Web</h2>
             <p className="mt-2 text-sm text-white/50">入境審查 & 海關申報</p>
           </div>
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+          <span className="flex h-12 w-12 items-center justify-center bg-white/10">
             <ExternalLink className="h-6 w-6" />
           </span>
         </div>
@@ -591,7 +607,7 @@ function ToolsView() {
             <p className="text-lg font-bold">訪日外國人醫療 & 急難熱線</p>
             <p className="mt-1 text-xs tracking-[0.16em] text-stone-400">JAPAN VISITOR HOTLINE</p>
             <p className="mt-3 font-serif text-3xl font-bold text-stone-700">050-3816-2787</p>
-            <a href="tel:05038162787" className="absolute right-5 top-8 flex h-12 w-12 items-center justify-center rounded-full bg-[#3c3631] text-white shadow-lg">
+            <a href="tel:05038162787" className="absolute right-5 top-8 flex h-12 w-12 items-center justify-center bg-[#3c3631] text-white shadow-lg">
               <Phone className="h-6 w-6" />
             </a>
           </div>
@@ -633,8 +649,8 @@ function ToolsView() {
 
 function FlightTicket({ ticket }: { ticket: { label: string; date: string; from: string; to: string; depart: string; arrive: string; airline: string; flightNo: string } }) {
   return (
-    <article className="relative overflow-hidden rounded-[18px] border border-stone-200 bg-white/88 p-5 shadow-[0_14px_34px_rgba(60,52,42,0.08)]">
-      <span className="absolute inset-y-4 right-0 w-1 rounded-l-full bg-[#b99a58]" />
+    <article className="relative overflow-hidden border border-stone-200 bg-white/88 p-5 shadow-[0_14px_34px_rgba(60,52,42,0.08)]">
+      <span className="absolute inset-y-4 right-0 w-1 bg-[#b99a58]" />
       <div className="flex items-center justify-between border-b border-dashed border-stone-200 pb-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8f293d]">Flight Ticket</p>
         <p className="text-[10px] uppercase tracking-[0.24em] text-stone-300">{ticket.label}</p>
@@ -654,7 +670,7 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
           <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-stone-300">Arr {ticket.arrive}</p>
         </div>
       </div>
-      <div className="mt-5 rounded-xl bg-[#f8f6f1] px-4 py-3">
+      <div className="mt-5 bg-[#f8f6f1] px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-stone-300">Date</p>
@@ -673,7 +689,7 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
 }
 
 function LedgerView() {
-  const [expenses, setExpenses] = useState(initialExpenses);
+  const [expenses, setExpenses] = useStoredState("nk-trip-expenses", initialExpenses);
   const [filter, setFilter] = useState<"all" | Payer>("all");
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
@@ -702,7 +718,7 @@ function LedgerView() {
             <ReceiptText className="h-5 w-5 text-stone-700" strokeWidth={1.7} />
             <h2 className="font-serif text-3xl font-semibold tracking-[0.04em] text-stone-900">旅行帳本</h2>
           </div>
-          <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Online</span>
+          <span className="mt-2 inline-flex bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Online</span>
         </div>
         <div className="text-right text-xs text-stone-300">
           <p>全部顯示</p>
@@ -712,7 +728,7 @@ function LedgerView() {
 
       <div className="mt-5 flex gap-2">
         {(["all", "K", "M", "E", "G", "J"] as const).map((item) => (
-          <button key={item} onClick={() => setFilter(item)} className={cn("flex h-8 min-w-8 items-center justify-center rounded-full border px-3 font-serif text-sm", filter === item ? "border-[#3c3631] bg-[#3c3631] text-white" : "border-stone-200 bg-white text-stone-400")}>
+          <button key={item} onClick={() => setFilter(item)} className={cn("flex h-8 min-w-8 items-center justify-center border px-3 font-serif text-sm", filter === item ? "border-[#3c3631] bg-[#3c3631] text-white" : "border-stone-200 bg-white text-stone-400")}>
             {item === "all" ? "全部" : item}
           </button>
         ))}
@@ -729,8 +745,8 @@ function LedgerView() {
             <div>
               <p className="font-semibold text-stone-800">{expense.title}</p>
               <div className="mt-2 flex items-center gap-2">
-                <span className={cn("inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs", payerStyle[expense.payer])}>{expense.payer}</span>
-                <span className="rounded bg-stone-50 px-2 py-0.5 text-[10px] text-stone-400">{expense.paid ? "已付" : "未付"}</span>
+                <span className={cn("inline-flex h-5 w-5 items-center justify-center border text-xs", payerStyle[expense.payer])}>{expense.payer}</span>
+                <span className="bg-stone-50 px-2 py-0.5 text-[10px] text-stone-400">{expense.paid ? "已付" : "未付"}</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -758,7 +774,7 @@ function LedgerView() {
           </div>
           <div className="mt-5 flex gap-2">
             {(["K", "M", "E", "G", "J"] as const).map((item) => (
-              <button key={item} type="button" onClick={() => setPayer(item)} className={cn("h-9 w-9 rounded-full border font-serif text-sm", payer === item ? payerStyle[item] : "border-stone-200 text-stone-300")}>
+              <button key={item} type="button" onClick={() => setPayer(item)} className={cn("h-9 w-9 border font-serif text-sm", payer === item ? payerStyle[item] : "border-stone-200 text-stone-300")}>
                 {item}
               </button>
             ))}
@@ -776,7 +792,7 @@ function LedgerView() {
 }
 
 function ChecklistView() {
-  const [categories, setCategories] = useState(initialChecklist);
+  const [categories, setCategories] = useStoredState("nk-trip-checklist", initialChecklist);
   const [adding, setAdding] = useState(false);
   const [categoryId, setCategoryId] = useState(initialChecklist[0].id);
   const [label, setLabel] = useState("");
@@ -795,9 +811,7 @@ function ChecklistView() {
 
   function removeItem(categoryIdToUpdate: string, itemId: string) {
     setCategories((current) =>
-      current.map((category) =>
-        category.id === categoryIdToUpdate ? { ...category, items: category.items.filter((item) => item.id !== itemId) } : category,
-      ),
+      current.map((category) => (category.id === categoryIdToUpdate ? { ...category, items: category.items.filter((item) => item.id !== itemId) } : category)),
     );
   }
 
@@ -806,9 +820,7 @@ function ChecklistView() {
     const trimmedLabel = label.trim();
     if (!trimmedLabel) return;
     setCategories((current) =>
-      current.map((category) =>
-        category.id === categoryId ? { ...category, items: [...category.items, { id: crypto.randomUUID(), label: trimmedLabel, done: false }] } : category,
-      ),
+      current.map((category) => (category.id === categoryId ? { ...category, items: [...category.items, { id: crypto.randomUUID(), label: trimmedLabel, done: false }] } : category)),
     );
     setLabel("");
     setAdding(false);
@@ -824,7 +836,7 @@ function ChecklistView() {
             <h2 className="font-serif text-3xl font-semibold tracking-[0.04em] text-stone-900">準備清單</h2>
           </div>
         </div>
-        <div className="rounded-full border border-stone-200 bg-white/70 px-4 py-2 text-right shadow-sm">
+        <div className="border border-stone-200 bg-white/70 px-4 py-2 text-right shadow-sm">
           <p className="font-serif text-lg text-stone-800">
             {doneItems}/{totalItems}
           </p>
@@ -836,11 +848,11 @@ function ChecklistView() {
         {categories.map((category) => {
           const done = category.items.filter((item) => item.done).length;
           return (
-            <article key={category.id} className="relative overflow-hidden rounded-[18px] border border-stone-200 bg-white/82 shadow-[0_16px_36px_rgba(60,52,42,0.07)]">
+            <article key={category.id} className="relative overflow-hidden border border-stone-200 bg-white/82 shadow-[0_16px_36px_rgba(60,52,42,0.07)]">
               <span className={cn("absolute inset-y-0 left-0 w-1.5", category.accent)} />
               <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
                 <h3 className="font-serif text-xl font-semibold text-stone-900">{category.title}</h3>
-                <span className="rounded-full bg-[#f3efe8] px-3 py-1 font-serif text-xs text-stone-500">
+                <span className="bg-[#f3efe8] px-3 py-1 font-serif text-xs text-stone-500">
                   {done}/{category.items.length}
                 </span>
               </div>
@@ -849,7 +861,7 @@ function ChecklistView() {
                   <div key={item.id} className="flex min-h-14 items-center gap-3 px-5 py-3">
                     <button
                       onClick={() => toggleItem(category.id, item.id)}
-                      className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded border transition", item.done ? "border-[#8f293d] bg-[#8f293d] text-white" : "border-stone-300 bg-white text-transparent")}
+                      className={cn("flex h-5 w-5 shrink-0 items-center justify-center border transition", item.done ? "border-[#8f293d] bg-[#8f293d] text-white" : "border-stone-300 bg-white text-transparent")}
                       aria-label={item.done ? "標記為未完成" : "標記為完成"}
                     >
                       <CheckSquare className="h-3.5 w-3.5" strokeWidth={2} />
@@ -867,7 +879,7 @@ function ChecklistView() {
       </div>
 
       {adding ? (
-        <form onSubmit={addItem} className="mt-6 rounded-[18px] border border-stone-200 bg-white/90 p-5 shadow-[0_16px_36px_rgba(60,52,42,0.07)]">
+        <form onSubmit={addItem} className="mt-6 border border-stone-200 bg-white/90 p-5 shadow-[0_16px_36px_rgba(60,52,42,0.07)]">
           <div className="flex items-center justify-between border-b border-stone-100 pb-4">
             <p className="text-sm tracking-[0.18em] text-stone-400">新增物品</p>
             <button type="button" onClick={() => setAdding(false)} className="text-stone-400" aria-label="關閉新增物品">
@@ -882,12 +894,12 @@ function ChecklistView() {
             ))}
           </select>
           <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="物品名稱" className="mt-4 w-full border-b border-stone-300 bg-transparent py-3 text-xl outline-none placeholder:text-stone-300" autoFocus />
-          <button type="submit" className="mt-6 h-12 w-full rounded-full bg-[#3c3631] font-serif text-lg tracking-[0.16em] text-white">
+          <button type="submit" className="mt-6 h-12 w-full bg-[#3c3631] font-serif text-lg tracking-[0.16em] text-white">
             加入清單
           </button>
         </form>
       ) : (
-        <button onClick={() => setAdding(true)} className="mt-8 flex h-16 w-full items-center justify-center gap-2 rounded-full bg-[#191817] font-serif text-xl tracking-[0.12em] text-white shadow-[0_14px_28px_rgba(60,52,42,0.2)]">
+        <button onClick={() => setAdding(true)} className="mt-8 flex h-16 w-full items-center justify-center gap-2 bg-[#191817] font-serif text-xl tracking-[0.12em] text-white shadow-[0_14px_28px_rgba(60,52,42,0.2)]">
           <PackagePlus className="h-5 w-5" strokeWidth={1.6} />
           新增物品
         </button>
