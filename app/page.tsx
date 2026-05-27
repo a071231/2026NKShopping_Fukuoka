@@ -5,7 +5,6 @@ import {
   CalendarDays,
   Car,
   CheckSquare,
-  Circle,
   Copy,
   Home,
   Info,
@@ -45,7 +44,6 @@ export default function HomePage() {
     () => itinerary.filter((item) => item.date === selectedDate),
     [selectedDate],
   );
-  const currentItem = dayItems[dayItems.length - 1] ?? itinerary[0];
 
   return (
     <main className="min-h-screen bg-[#f8f6f1] text-[#2c2925]">
@@ -58,7 +56,6 @@ export default function HomePage() {
         <Timeline dayItems={dayItems} />
       </div>
 
-      <NowCard item={currentItem} />
       <BottomNavigation />
     </main>
   );
@@ -272,37 +269,6 @@ function Timeline({ dayItems }: { dayItems: typeof itinerary }) {
         </div>
       </div>
     </section>
-  );
-}
-
-function NowCard({ item }: { item: (typeof itinerary)[number] }) {
-  return (
-    <aside className="fixed inset-x-3 bottom-[74px] z-30 mx-auto max-w-[390px] overflow-hidden rounded-lg border border-stone-200 bg-white/92 shadow-[0_16px_38px_rgba(48,42,36,0.16)] backdrop-blur-xl">
-      <div className="grid grid-cols-[64px_1fr_78px]">
-        <div className="flex flex-col items-center justify-center border-r border-stone-100 bg-stone-50 text-stone-300">
-          <Navigation className="h-5 w-5" strokeWidth={1.5} />
-          <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.12em]">GPS</span>
-          <span className="text-[9px] font-semibold uppercase tracking-[0.12em]">OFF</span>
-        </div>
-        <div className="p-4">
-          <div className="flex items-center gap-2">
-            <p className="font-serif text-2xl font-semibold text-stone-900">{item.time}</p>
-            <span className="rounded border border-stone-200 px-1.5 py-0.5 text-[10px] text-stone-400">
-              行程預覽
-            </span>
-          </div>
-          <p className="mt-1 line-clamp-1 font-serif text-lg font-semibold text-stone-900">
-            {item.title}
-          </p>
-          <p className="mt-1 line-clamp-1 text-xs text-stone-400">→ {item.address}</p>
-        </div>
-        <div className="flex flex-col items-center justify-center border-l border-stone-100 text-stone-500">
-          <Circle className="h-4 w-4" strokeWidth={1.4} />
-          <p className="mt-2 font-serif text-xl font-semibold">15:00</p>
-          <p className="text-[10px] text-stone-400">下個時間</p>
-        </div>
-      </div>
-    </aside>
   );
 }
 
