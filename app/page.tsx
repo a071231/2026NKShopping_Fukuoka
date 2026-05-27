@@ -14,6 +14,7 @@ import {
   Navigation,
   PackagePlus,
   Phone,
+  Plane,
   Plus,
   ReceiptText,
   Shield,
@@ -321,6 +322,30 @@ function ToolsView() {
     { type: "HOTEL", title: "由布院 玉の湯", detail: "Open Link →" },
     { type: "ACTIVITY", title: "茅乃舍 餐廳", detail: "Open Link →" },
   ];
+  const flightTickets = [
+    {
+      id: "flight-out",
+      label: "去程航班",
+      date: "2026.10.03",
+      from: "TPE",
+      to: "FUK",
+      depart: "07:30",
+      arrive: "11:00",
+      airline: "星宇航空",
+      flightNo: "JX846",
+    },
+    {
+      id: "flight-back",
+      label: "回程航班",
+      date: "2026.10.11",
+      from: "FUK",
+      to: "TPE",
+      depart: "待確認",
+      arrive: "待確認",
+      airline: "星宇航空",
+      flightNo: "待確認",
+    },
+  ];
 
   return (
     <section className="px-5 pt-6">
@@ -355,6 +380,21 @@ function ToolsView() {
           開啟 Google Maps 導航
         </a>
       </div>
+
+      <section className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-stone-800">
+            <Plane className="h-5 w-5 text-[#8f293d]" strokeWidth={1.6} />
+            <h2 className="font-serif text-2xl font-semibold tracking-[0.04em]">航班資訊</h2>
+          </div>
+          <span className="text-[10px] uppercase tracking-[0.24em] text-stone-300">Boarding Pass</span>
+        </div>
+        <div className="space-y-4">
+          {flightTickets.map((ticket) => (
+            <FlightTicket key={ticket.id} ticket={ticket} />
+          ))}
+        </div>
+      </section>
 
       <a href="https://www.vjw.digital.go.jp/" target="_blank" rel="noreferrer" className="mt-5 block overflow-hidden rounded-md bg-[#191817] p-7 text-white shadow-[0_12px_28px_rgba(24,22,20,0.25)]">
         <span className="rounded bg-[#c64f6b] px-3 py-1 text-xs font-semibold tracking-[0.18em]">MUST HAVE</span>
@@ -426,6 +466,49 @@ function ToolsView() {
         ))}
       </section>
     </section>
+  );
+}
+
+function FlightTicket({ ticket }: { ticket: { label: string; date: string; from: string; to: string; depart: string; arrive: string; airline: string; flightNo: string } }) {
+  return (
+    <article className="relative overflow-hidden rounded-[18px] border border-stone-200 bg-white/88 p-5 shadow-[0_14px_34px_rgba(60,52,42,0.08)]">
+      <span className="absolute inset-y-4 right-0 w-1 rounded-l-full bg-[#b99a58]" />
+      <div className="flex items-center justify-between border-b border-dashed border-stone-200 pb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8f293d]">Flight Ticket</p>
+        <p className="text-[10px] uppercase tracking-[0.24em] text-stone-300">{ticket.label}</p>
+      </div>
+
+      <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+        <div>
+          <p className="font-serif text-4xl font-bold tracking-[0.02em] text-stone-950">{ticket.from}</p>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-stone-300">Dep {ticket.depart}</p>
+        </div>
+        <div className="flex items-center gap-2 text-stone-300">
+          <span className="h-px w-8 bg-stone-200" />
+          <Plane className="h-4 w-4 rotate-90 text-[#8f293d]" strokeWidth={1.5} />
+          <span className="h-px w-8 bg-stone-200" />
+        </div>
+        <div className="text-right">
+          <p className="font-serif text-4xl font-bold tracking-[0.02em] text-stone-950">{ticket.to}</p>
+          <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-stone-300">Arr {ticket.arrive}</p>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-xl bg-[#f8f6f1] px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-stone-300">Date</p>
+            <p className="mt-1 font-serif text-sm font-semibold text-stone-700">{ticket.date}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-stone-300">Flight</p>
+            <p className="mt-1 font-serif text-sm font-semibold text-stone-700">
+              {ticket.airline} · {ticket.flightNo}
+            </p>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
