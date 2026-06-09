@@ -14,6 +14,8 @@ import {
   CalendarDays,
   Car,
   CheckSquare,
+  ChevronRight,
+  ClipboardCheck,
   Cloud,
   CloudRain,
   Copy,
@@ -35,6 +37,7 @@ import {
   Sun,
   Trash2,
   Utensils,
+  WalletCards,
   X,
 } from "lucide-react";
 
@@ -171,7 +174,6 @@ export default function HomePage() {
         ) : (
           <>
             <CompactHeader />
-            <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} view={view} setView={setView} />
             {view === "tools" ? <ToolsView /> : view === "ledger" ? <LedgerView /> : <ChecklistView />}
           </>
         )}
@@ -256,33 +258,108 @@ function DateRail({
   );
 }
 
+type LiveWeatherDay = {
+  date: string;
+  weekday: string;
+  high: number;
+  low: number;
+  code: number;
+};
+
+type LiveWeatherData = {
+  temperature: number;
+  code: number;
+  days: LiveWeatherDay[];
+};
+
+function weatherCodeMeta(code: number): { label: string; icon: WeatherIcon } {
+  if (code === 0) return { label: "晴朗", icon: "sun" };
+  if (code === 1 || code === 2) return { label: "晴時多雲", icon: "sun" };
+  if (code === 3 || code === 45 || code === 48) return { label: "多雲", icon: "cloud" };
+  if (code >= 51 && code <= 67) return { label: "有雨", icon: "rain" };
+  if (code >= 71 && code <= 77) return { label: "降雪", icon: "cloud" };
+  if (code >= 80 && code <= 82) return { label: "短暫陣雨", icon: "rain" };
+  if (code >= 95) return { label: "雷雨", icon: "rain" };
+  return { label: "多雲", icon: "cloud" };
+}
+
 function WeatherCard() {
-  const today = weatherForecast[0];
-  const TodayIcon = weatherIconMap[today.icon];
-  const mini = weatherForecast.slice(1, 5);
+  const [liveWeather, setLiveWeather] = useState<LiveWeatherData | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const url =
+      "https://api.open-meteo.com/v1/forecast?latitude=33.5902&longitude=130.4017&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo&forecast_days=5";
+
+    fetch(url, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Weather request failed");
+        return response.json();
+      })
+      .then((data) => {
+        const days: LiveWeatherDay[] = data.daily.time.map((date: string, index: number) => ({
+          date,
+          weekday: new Intl.DateTimeFormat("zh-TW", {
+            weekday: "short",
+            timeZone: "Asia/Tokyo",
+          }).format(new Date(`${date}T12:00:00+09:00`)),
+          high: Math.round(data.daily.temperature_2m_max[index]),
+          low: Math.round(data.daily.temperature_2m_min[index]),
+          code: data.daily.weather_code[index],
+        }));
+
+        setLiveWeather({
+          temperature: Math.round(data.current.temperature_2m),
+          code: data.current.weather_code,
+          days,
+        });
+      })
+      .catch((error) => {
+        if (error.name !== "AbortError") setLiveWeather(null);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const fallbackToday = weatherForecast[0];
+  const currentMeta = liveWeather
+    ? weatherCodeMeta(liveWeather.code)
+    : { label: fallbackToday.condition, icon: fallbackToday.icon };
+  const TodayIcon = weatherIconMap[currentMeta.icon];
+  const currentTemperature = liveWeather?.temperature ?? 18;
+  const todayHigh = liveWeather?.days[0]?.high ?? Number.parseInt(fallbackToday.high);
+  const todayLow = liveWeather?.days[0]?.low ?? Number.parseInt(fallbackToday.low);
+  const mini = liveWeather?.days.slice(1, 5);
 
   return (
     <section className="rounded-2xl border border-white/70 bg-white/82 p-5 shadow-[0_18px_45px_rgba(83,72,59,0.13)] backdrop-blur-xl">
-      <div className="grid grid-cols-[1.05fr_1.7fr] gap-4">
-        <div>
+      <div className="grid grid-cols-[1.05fr_1.7fr] items-center gap-4">
+        <div className="flex min-h-[122px] flex-col justify-center">
           <p className="flex items-center gap-1 text-sm text-[#7d7368]">
             福岡市
             <MapPin className="h-3.5 w-3.5" strokeWidth={1.4} />
           </p>
           <div className="mt-3 flex items-center gap-2">
-            <p className="font-serif text-5xl leading-none text-[#4e453c]">{today.high.replace("°", "")}°</p>
+            <p className="font-serif text-5xl leading-none text-[#4e453c]">{currentTemperature}°</p>
             <TodayIcon className="h-8 w-8 text-[#c98f45]" strokeWidth={1.5} />
           </div>
-          <p className="mt-3 text-xs leading-5 text-[#90867b]">近11天當地天氣預報</p>
+          <p className="mt-3 text-xs leading-5 text-[#90867b]">{currentMeta.label}</p>
+          <p className="mt-1 text-xs leading-5 text-[#90867b]">最高 {todayHigh}°</p>
+          <p className="text-xs leading-5 text-[#90867b]">最低 {todayLow}°</p>
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          {mini.map((item) => {
-            const Icon = weatherIconMap[item.icon];
+        <div className="grid min-h-[122px] grid-cols-4 items-center gap-2 border-l border-[#eee5dc] pl-4">
+          {(mini ?? weatherForecast.slice(1, 5)).map((item) => {
+            const itemMeta = "code" in item ? weatherCodeMeta(item.code) : { icon: item.icon };
+            const Icon = weatherIconMap[itemMeta.icon];
+            const high = typeof item.high === "number" ? item.high : Number.parseInt(item.high);
+            const low = typeof item.low === "number" ? item.low : Number.parseInt(item.low);
             return (
               <div key={item.date} className="text-center">
-                <p className="text-[11px] text-[#8f8579]">{item.date}</p>
-                <Icon className="mx-auto mt-3 h-6 w-6 text-[#8a8075]" strokeWidth={1.5} />
-                <p className="mt-3 text-xs text-[#6e6459]">{item.high}</p>
+                <p className="text-[11px] text-[#8f8579]">{item.weekday}</p>
+                <Icon className={cn("mx-auto mt-3 h-6 w-6", itemMeta.icon === "sun" ? "text-[#c98f45]" : "text-[#8a8075]")} strokeWidth={1.5} />
+                <p className="mt-3 text-[10px] text-[#6e6459]">
+                  {high}° / {low}°
+                </p>
               </div>
             );
           })}
@@ -350,59 +427,104 @@ function StayCard() {
     setNoteImages((current) => [...current, ...images]);
   }
 
+  function openHotelLink() {
+    window.open(hotelLink, "_blank", "noopener,noreferrer");
+  }
+
   return (
     <>
-      <section className="overflow-hidden rounded-2xl border border-white/70 bg-white/84 shadow-[0_18px_45px_rgba(83,72,59,0.12)] backdrop-blur">
-        <div className="grid grid-cols-[2fr_minmax(0,3fr)]">
-          <img src={hotel.image} alt={hotel.name} className="h-full min-h-[136px] w-full object-cover" />
-          <div className="flex min-w-0 items-start justify-between gap-3 p-4">
-            <div className="min-w-0">
-              <p className="text-xs text-[#aaa197]">住宿</p>
-              <h2 className="mt-2 font-serif text-xl font-semibold leading-tight text-[#514a42]">{hotel.name}</h2>
-              <p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-[#9a9085]">
-                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                {hotel.address}
-              </p>
-              <p className="mt-2 flex items-center gap-2 text-xs text-[#9a9085]">
-                <CalendarDays className="h-3.5 w-3.5" />
-                {hotel.dates}
-              </p>
-              {editingLink ? (
-                <form onSubmit={saveHotelLink} className="mt-3 flex min-w-0 items-center gap-1">
-                  <input
-                    value={draftLink}
-                    onChange={(event) => setDraftLink(event.target.value)}
-                    className="min-w-0 flex-1 border-b border-[#a89175]/40 bg-transparent py-1 text-xs text-[#6e6459] outline-none"
-                    placeholder="貼上住宿連結"
-                    autoFocus
-                  />
-                  <button type="submit" className="rounded-full bg-[#8a7c6c] px-2 py-1 text-[10px] text-white">
-                    存
-                  </button>
-                  <button type="button" onClick={() => setEditingLink(false)} className="rounded-full border border-[#e1d7ca] px-2 py-1 text-[10px] text-[#8f8579]">
-                    取消
-                  </button>
-                </form>
-              ) : (
-                <div className="mt-3 flex w-full min-w-0 items-center gap-2 text-xs">
-                  <a href={hotelLink} target="_blank" rel="noreferrer" className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[#9a744f]">
-                    連結：{hotelLink}
-                  </a>
-                  <button onClick={() => setEditingLink(true)} className="shrink-0 text-[#9a9085]" aria-label="編輯住宿連結">
-                    <Pencil className="h-3.5 w-3.5" strokeWidth={1.6} />
-                  </button>
-                </div>
-              )}
-              <button onClick={openNotes} className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#ded4c7] bg-[#fbf7f0] px-3 py-1.5 text-xs text-[#7d7368]">
-                <StickyNote className="h-3.5 w-3.5" strokeWidth={1.6} />
-                備註事項
-              </button>
-            </div>
-            <button onClick={copyStayInfo} className="mt-1 shrink-0 text-[#9a9085]" aria-label="複製住宿資訊">
+      <section className="overflow-hidden rounded-2xl border border-white/70 bg-white/84 p-4 shadow-[0_18px_45px_rgba(83,72,59,0.12)] backdrop-blur">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="font-serif text-sm tracking-[0.08em] text-[#7d7368]">住宿資訊</p>
+          <div className="flex items-center gap-3 text-[#9a9085]">
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                setEditingLink(true);
+              }}
+              aria-label="編輯住宿連結"
+            >
+              <Pencil className="h-4 w-4" strokeWidth={1.5} />
+            </button>
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                void copyStayInfo();
+              }}
+              aria-label="複製住宿資訊"
+            >
               <Copy className="h-4 w-4" strokeWidth={1.5} />
             </button>
           </div>
         </div>
+        <div
+          role="link"
+          tabIndex={0}
+          onClick={openHotelLink}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") openHotelLink();
+          }}
+          className="grid cursor-pointer grid-cols-[42%_minmax(0,58%)] items-stretch"
+        >
+          <img src={hotel.image} alt={hotel.name} className="h-full min-h-[142px] w-full rounded-xl object-cover" />
+          <div className="flex min-w-0 flex-col px-4 py-1">
+            <h2 className="font-serif text-xl font-semibold leading-tight text-[#514a42]">{hotel.name}</h2>
+            <p className="mt-3 flex min-w-0 items-start gap-2 text-xs leading-relaxed text-[#9a9085]">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span className="line-clamp-2">{hotel.address}</span>
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="flex items-start gap-2">
+                <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[#a89175]" strokeWidth={1.4} />
+                <div>
+                  <p className="text-[10px] text-[#aaa197]">入住</p>
+                  <p className="mt-0.5 font-serif text-sm text-[#6e6459]">10/03</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[#a89175]" strokeWidth={1.4} />
+                <div>
+                  <p className="text-[10px] text-[#aaa197]">退房</p>
+                  <p className="mt-0.5 font-serif text-sm text-[#6e6459]">10/07</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-auto flex items-end justify-between pt-3">
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openNotes();
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#ded4c7] bg-[#fbf7f0] px-3 py-1.5 text-[11px] text-[#7d7368]"
+              >
+                <StickyNote className="h-3.5 w-3.5" strokeWidth={1.6} />
+                備註事項
+              </button>
+              <ChevronRight className="h-5 w-5 text-[#9a9085]" strokeWidth={1.5} />
+            </div>
+          </div>
+        </div>
+        {editingLink ? (
+          <form
+            onSubmit={saveHotelLink}
+            onClick={(event) => event.stopPropagation()}
+            className="mt-4 flex min-w-0 items-center gap-2 border-t border-[#eee5dc] pt-3"
+          >
+            <input
+              value={draftLink}
+              onChange={(event) => setDraftLink(event.target.value)}
+              className="min-w-0 flex-1 border-b border-[#a89175]/40 bg-transparent py-2 text-xs text-[#6e6459] outline-none"
+              placeholder="貼上住宿連結"
+              autoFocus
+            />
+            <button type="submit" className="rounded-full bg-[#8a7c6c] px-3 py-1.5 text-[10px] text-white">
+              儲存
+            </button>
+            <button type="button" onClick={() => setEditingLink(false)} className="rounded-full border border-[#e1d7ca] px-3 py-1.5 text-[10px] text-[#8f8579]">
+              取消
+            </button>
+          </form>
+        ) : null}
       </section>
       {copied ? <p className="-mt-3 text-right text-[11px] text-[#9a744f]">已複製住宿資訊</p> : null}
 
@@ -913,19 +1035,32 @@ function BottomNavigation({ view, setView }: { view: View; setView: (view: View)
   const navItems = [
     { id: "home" as const, label: "首頁", icon: Home },
     { id: "tools" as const, label: "資訊", icon: Info },
-    { id: "ledger" as const, label: "記帳", icon: ReceiptText },
-    { id: "checklist" as const, label: "準備清單", icon: CheckSquare },
+    { id: "ledger" as const, label: "記帳", icon: WalletCards },
+    { id: "checklist" as const, label: "準備清單", icon: ClipboardCheck },
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-white/70 bg-[#fbf7f0]/88 px-3 pb-[max(0.7rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl">
-      <div className="mx-auto grid max-w-[390px] grid-cols-4 gap-2">
+    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-[#eee9e2] bg-white/94 px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl">
+      <div className="mx-auto grid max-w-[390px] grid-cols-4">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = view === item.id;
           return (
-            <button key={item.id} onClick={() => setView(item.id)} className={cn("flex h-14 flex-col items-center justify-center gap-1 rounded-2xl border text-[11px]", active ? "border-[#a89175] bg-[#a89175] text-white shadow-[0_10px_22px_rgba(83,72,59,0.18)]" : "border-transparent text-[#8f8579]")}>
-              <Icon className="h-5 w-5" strokeWidth={1.6} />
+            <button
+              key={item.id}
+              onClick={() => setView(item.id)}
+              className={cn(
+                "flex h-14 flex-col items-center justify-center gap-1.5 text-[12px] transition-colors",
+                active ? "font-medium text-[#9b8264]" : "text-[#8f8a84]",
+              )}
+            >
+              {item.id === "tools" && active ? (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#9b8264]">
+                  <Info className="h-4 w-4 text-white" strokeWidth={2} />
+                </span>
+              ) : (
+                <Icon className="h-6 w-6" strokeWidth={active ? 2 : 1.7} />
+              )}
               <span>{item.label}</span>
             </button>
           );
