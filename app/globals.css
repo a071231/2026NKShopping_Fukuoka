@@ -4,10 +4,10 @@
 @source "../lib/**/*.{ts,tsx}";
 
 :root {
-  --background: #e8dfd2;
-  --foreground: #514a42;
-  --accent: #a89175;
-  --paper-line: rgba(83, 72, 59, 0.1);
+  --background: #dcecf7;
+  --foreground: #082f52;
+  --accent: #d1a047;
+  --paper-line: rgba(8, 47, 82, 0.1);
 }
 
 * {
@@ -23,8 +23,8 @@ body {
   margin: 0;
   color: var(--foreground);
   background:
-    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.72), transparent 22rem),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(211, 198, 178, 0.36)),
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.88), transparent 24rem),
+    linear-gradient(135deg, rgba(222, 242, 255, 0.82), rgba(153, 203, 235, 0.34)),
     var(--background);
   font-family:
     "Hiragino Sans",

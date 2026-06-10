@@ -49,8 +49,7 @@ export const hotel = {
   name: "The Blossom Kumamoto",
   dates: "2026.10.03 - 2026.10.07",
   address: "3 Chome-15-26 Kasuga, Nishi Ward, Kumamoto",
-  image:
-    "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=1400&q=82",
+  image: "/images/fukuoka-coast-hero.jpg",
 };
 
 export const itinerary: ItineraryItem[] = [
