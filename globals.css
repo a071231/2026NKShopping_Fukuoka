@@ -1,0 +1,56 @@
+@import "tailwindcss";
+@source "../app/**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source "../lib/**/*.{ts,tsx}";
+
+:root {
+  --background: #dcecf7;
+  --foreground: #082f52;
+  --accent: #d1a047;
+  --paper-line: rgba(8, 47, 82, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.88), transparent 24rem),
+    linear-gradient(135deg, rgba(222, 242, 255, 0.82), rgba(153, 203, 235, 0.34)),
+    var(--background);
+  font-family:
+    "Hiragino Sans",
+    "Yu Gothic",
+    "Noto Sans TC",
+    system-ui,
+    sans-serif;
+}
+
+.font-serif {
+  font-family:
+    "Times New Roman",
+    "Songti TC",
+    "Noto Serif TC",
+    serif;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
