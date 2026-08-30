@@ -47,8 +47,7 @@ import { useCloudItinerary, useCloudMembers, type TripMember } from "@/lib/cloud
 import { cn } from "@/lib/utils";
 
 type View = "home" | "tools" | "ledger" | "checklist";
-type Payer = "K" | "M" | "E" | "G" | "J";
-type Expense = { id: string; title: string; amount: number; payer: Payer; paid?: boolean };
+type Expense = { id: string; title: string; amount: number; payer: string; paid?: boolean };
 type ChecklistItem = { id: string; label: string; done: boolean };
 type ChecklistCategory = { id: string; title: string; accent: string; items: ChecklistItem[] };
 
@@ -56,14 +55,6 @@ const mapUrl = "https://maps.app.goo.gl/oYZVFgyA9oiwbB7Q7";
 const defaultHotelLink = "https://www.jrhotelgroup.com/hotel/192/";
 const defaultHotelNote = "入住時請確認早餐時間、停車位置與房型資訊。若有訂房確認信或 QR Code，可將截圖上傳到這裡。";
 const heroImage = "/images/fukuoka-coast-hero.jpg";
-
-const payerStyle: Record<Payer, string> = {
-  K: "border-blue-200 bg-blue-50 text-blue-600",
-  M: "border-pink-200 bg-pink-50 text-pink-600",
-  E: "border-amber-200 bg-amber-50 text-amber-700",
-  G: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  J: "border-violet-200 bg-violet-50 text-violet-700",
-};
 
 const categoryMeta: Record<
   ItineraryCategory,
@@ -82,13 +73,13 @@ const weatherIconMap: Record<WeatherIcon, typeof Sun> = {
 };
 
 const initialExpenses: Expense[] = [
-  { id: "e1", title: "星宇航空機票", amount: 148100, payer: "K", paid: true },
-  { id: "e2", title: "The Blossom Kumamoto x1晚", amount: 15383, payer: "K", paid: true },
-  { id: "e3", title: "月洸樹 黑川 x1晚", amount: 81503, payer: "K" },
-  { id: "e4", title: "由布院 玉の湯 x1晚", amount: 55941, payer: "M" },
-  { id: "e5", title: "Grand Hyatt Fukuoka x3晚", amount: 123105, payer: "E", paid: true },
-  { id: "e6", title: "觀光列車車票", amount: 24895, payer: "G", paid: true },
-  { id: "e7", title: "D1 午餐 魚飯時", amount: 3458, payer: "J", paid: true },
+  { id: "e1", title: "星宇航空機票", amount: 148100, payer: "member-00", paid: true },
+  { id: "e2", title: "The Blossom Kumamoto x1晚", amount: 15383, payer: "member-00", paid: true },
+  { id: "e3", title: "月洸樹 黑川 x1晚", amount: 81503, payer: "member-00" },
+  { id: "e4", title: "由布院 玉の湯 x1晚", amount: 55941, payer: "member-mom" },
+  { id: "e5", title: "Grand Hyatt Fukuoka x3晚", amount: 123105, payer: "member-uu", paid: true },
+  { id: "e6", title: "觀光列車車票", amount: 24895, payer: "member-tuna", paid: true },
+  { id: "e7", title: "D1 午餐 魚飯時", amount: 3458, payer: "member-paipai", paid: true },
 ];
 
 const initialChecklist: ChecklistCategory[] = [
@@ -976,23 +967,37 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
 }
 
 function LedgerView() {
+  const { members, cloudError } = useCloudMembers();
   const [expenses, setExpenses] = useStoredState("nk-trip-expenses", initialExpenses);
-  const [filter, setFilter] = useState<"all" | Payer>("all");
+  const [filter, setFilter] = useState("all");
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [payer, setPayer] = useState<Payer>("K");
-  const visibleExpenses = filter === "all" ? expenses : expenses.filter((item) => item.payer === filter);
+  const [payer, setPayer] = useState("");
+  const legacyPayerIds: Record<string, string | undefined> = {
+    K: members[0]?.id,
+    M: members[1]?.id,
+    E: members[2]?.id,
+    G: members[3]?.id,
+    J: members[4]?.id,
+  };
+  const resolvePayerId = (payerId: string) => legacyPayerIds[payerId] ?? payerId;
+  const visibleExpenses = filter === "all" ? expenses : expenses.filter((item) => resolvePayerId(item.payer) === filter);
   const total = expenses.reduce((sum, item) => sum + item.amount, 0);
+
+  useEffect(() => {
+    if (!members.length) return;
+    if (!members.some((member) => member.id === payer)) setPayer(members[0].id);
+  }, [members, payer]);
 
   function addExpense(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsedAmount = Number(amount.replace(/,/g, ""));
-    if (!title.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
+    if (!title.trim() || !payer || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
     setExpenses((current) => [...current, { id: crypto.randomUUID(), title: title.trim(), amount: Math.round(parsedAmount), payer }]);
     setTitle("");
     setAmount("");
-    setPayer("K");
+    setPayer(members[0]?.id ?? "");
     setAdding(false);
   }
 
@@ -1012,24 +1017,36 @@ function LedgerView() {
         </div>
       </div>
       <div className="mt-5 flex gap-2">
-        {(["all", "K", "M", "E", "G", "J"] as const).map((item) => (
-          <button key={item} onClick={() => setFilter(item)} className={cn("flex h-8 min-w-8 items-center justify-center rounded-full border px-3 font-serif text-sm", filter === item ? "border-[#0a3d66] bg-[#0a3d66] text-white" : "border-[#d7e5ef] bg-white/70 text-[#6c8295]")}>
-            {item === "all" ? "全部" : item}
-          </button>
-        ))}
+        <button onClick={() => setFilter("all")} className={cn("flex h-10 items-center justify-center rounded-full border px-4 font-serif text-sm", filter === "all" ? "border-[#0a3d66] bg-[#0a3d66] text-white" : "border-[#d7e5ef] bg-white/70 text-[#6c8295]")}>
+          全部
+        </button>
+        <div className="flex min-w-0 gap-2 overflow-x-auto pb-1">
+          {members.map((member) => (
+            <button key={member.id} onClick={() => setFilter(member.id)} title={member.name} aria-label={`只顯示 ${member.name} 的款項`} className={cn("relative h-10 w-10 shrink-0 overflow-hidden rounded-full border-2", filter === member.id ? "border-[#cf9c3e] ring-2 ring-[#f4dfb5]" : "border-white ring-1 ring-[#d4e4ee]")}>
+              {member.avatar ? <Image src={member.avatar} alt={member.name} width={40} height={40} unoptimized className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center bg-[#e8f3f9] text-xs font-semibold text-[#2f82a5]">{member.name.slice(0, 2)}</span>}
+            </button>
+          ))}
+        </div>
       </div>
+      {cloudError ? <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-600">{cloudError}</p> : null}
       <div className="mt-6 overflow-hidden rounded-2xl border border-white/70 bg-white/82 shadow-[0_16px_38px_rgba(8,47,82,0.08)]">
         <div className="border-b border-[#e1ebf2] p-6">
           <p className="text-sm text-[#6c8295]">總金額（台幣）</p>
           <p className="mt-2 font-serif text-5xl font-semibold text-[#082f52]">${total.toLocaleString()}</p>
-          <p className="mt-2 text-sm font-semibold text-[#496782]">每人均攤: ${Math.round(total / 5).toLocaleString()}</p>
+          <p className="mt-2 text-sm font-semibold text-[#496782]">每人均攤: ${members.length ? Math.round(total / members.length).toLocaleString() : "0"}</p>
         </div>
-        {visibleExpenses.map((expense) => (
-          <div key={expense.id} className="flex items-center justify-between border-b border-[#e5eef4] p-4 last:border-b-0">
+        {visibleExpenses.map((expense) => {
+          const member = members.find((item) => item.id === resolvePayerId(expense.payer));
+          return <div key={expense.id} className="flex items-center justify-between border-b border-[#e5eef4] p-4 last:border-b-0">
             <div>
               <p className="font-semibold text-[#0b3558]">{expense.title}</p>
               <div className="mt-2 flex items-center gap-2">
-                <span className={cn("inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs", payerStyle[expense.payer])}>{expense.payer}</span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#496782]">
+                  <span className="h-6 w-6 overflow-hidden rounded-full border border-white bg-[#e8f3f9] ring-1 ring-[#d4e4ee]">
+                    {member?.avatar ? <Image src={member.avatar} alt={member.name} width={24} height={24} unoptimized className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center text-[9px] font-semibold text-[#2f82a5]">{member?.name.slice(0, 2) ?? "?"}</span>}
+                  </span>
+                  {member?.name ?? "已刪除成員"}
+                </span>
                 <span className="rounded bg-[#edf5fa] px-2 py-0.5 text-[10px] text-[#6c8295]">{expense.paid ? "已付" : "未付"}</span>
               </div>
             </div>
@@ -1039,8 +1056,8 @@ function LedgerView() {
                 <Trash2 className="h-4 w-4" strokeWidth={1.5} />
               </button>
             </div>
-          </div>
-        ))}
+          </div>;
+        })}
       </div>
       {adding ? (
         <form onSubmit={addExpense} className="mt-5 rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_12px_34px_rgba(8,47,82,0.07)]">
@@ -1056,9 +1073,9 @@ function LedgerView() {
             <span className="rounded border border-[#d7e5ef] bg-[#edf5fa] px-4 py-3 font-serif text-sm text-[#496782]">JPY</span>
           </div>
           <div className="mt-5 flex gap-2">
-            {(["K", "M", "E", "G", "J"] as const).map((item) => (
-              <button key={item} type="button" onClick={() => setPayer(item)} className={cn("h-9 w-9 rounded-full border font-serif text-sm", payer === item ? payerStyle[item] : "border-[#d7e5ef] text-[#8fa2b2]")}>
-                {item}
+            {members.map((member) => (
+              <button key={member.id} type="button" onClick={() => setPayer(member.id)} title={member.name} className={cn("relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2", payer === member.id ? "border-[#cf9c3e] ring-2 ring-[#f4dfb5]" : "border-white ring-1 ring-[#d4e4ee]")}>
+                {member.avatar ? <Image src={member.avatar} alt={member.name} width={48} height={48} unoptimized className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center bg-[#e8f3f9] text-xs font-semibold text-[#2f82a5]">{member.name.slice(0, 2)}</span>}
               </button>
             ))}
           </div>
