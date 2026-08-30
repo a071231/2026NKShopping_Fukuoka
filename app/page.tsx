@@ -725,8 +725,8 @@ function ToolsView() {
     { type: "ACTIVITY", title: "茅乃舍 餐廳", detail: "Open Link →" },
   ];
   const flightTickets = [
-    { id: "flight-out", label: "去程航班", date: "2026.10.03", from: "TPE", to: "FUK", depart: "07:30", arrive: "11:00", airline: "星宇航空", flightNo: "JX846" },
-    { id: "flight-back", label: "回程航班", date: "2026.10.11", from: "FUK", to: "TPE", depart: "待確認", arrive: "待確認", airline: "星宇航空", flightNo: "待確認" },
+    { id: "flight-out", label: "去程航班", date: "03 Oct 2026", from: "TPE", fromName: "TAIPEI TAIWAN TAOYUAN INTL", fromTerminal: "2", to: "FUK", toName: "FUKUOKA FUKUOKA", toTerminal: "I", depart: "14:40", arrive: "18:05", airline: "中華航空", flightNo: "CI128" },
+    { id: "flight-back", label: "回程航班", date: "11 Oct 2026", from: "FUK", fromName: "FUKUOKA FUKUOKA", fromTerminal: "I", to: "TPE", toName: "TAIPEI TAIWAN TAOYUAN INTL", toTerminal: "2", depart: "11:00", arrive: "12:30", airline: "中華航空", flightNo: "CI111" },
   ];
 
   return (
@@ -927,7 +927,7 @@ function MembersCard() {
   );
 }
 
-function FlightTicket({ ticket }: { ticket: { label: string; date: string; from: string; to: string; depart: string; arrive: string; airline: string; flightNo: string } }) {
+function FlightTicket({ ticket }: { ticket: { label: string; date: string; from: string; fromName: string; fromTerminal: string; to: string; toName: string; toTerminal: string; depart: string; arrive: string; airline: string; flightNo: string } }) {
   return (
     <article className="relative overflow-hidden rounded-2xl border border-white/70 bg-white/82 p-5 shadow-[0_14px_34px_rgba(8,47,82,0.1)]">
       <span className="absolute inset-y-4 right-0 w-1 rounded-l-full bg-[#e1a33a]" />
@@ -939,6 +939,8 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
         <div>
           <p className="font-serif text-4xl font-bold tracking-[0.02em] text-[#062d50]">{ticket.from}</p>
           <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-[#8fa2b2]">Dep {ticket.depart}</p>
+          <p className="mt-2 max-w-[120px] text-[9px] leading-4 text-[#6c8295]">{ticket.fromName}</p>
+          <p className="mt-1 text-[9px] font-semibold text-[#496782]">Terminal {ticket.fromTerminal}</p>
         </div>
         <div className="flex items-center gap-2 text-[#b7cbd8]">
           <span className="h-px w-8 bg-[#d9e6ef]" />
@@ -948,6 +950,8 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
         <div className="text-right">
           <p className="font-serif text-4xl font-bold tracking-[0.02em] text-[#062d50]">{ticket.to}</p>
           <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-[#8fa2b2]">Arr {ticket.arrive}</p>
+          <p className="ml-auto mt-2 max-w-[120px] text-[9px] leading-4 text-[#6c8295]">{ticket.toName}</p>
+          <p className="mt-1 text-[9px] font-semibold text-[#496782]">Terminal {ticket.toTerminal}</p>
         </div>
       </div>
       <div className="mt-5 rounded-xl bg-[#edf5fa] px-4 py-3">
