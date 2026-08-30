@@ -18,6 +18,8 @@ import { itinerary as initialItinerary, type ItineraryItem } from "@/data/trip";
 import { db } from "@/lib/firebase";
 
 export type TripMember = { id: string; name: string; avatar: string };
+export type CloudChecklistItem = { id: string; label: string; done: boolean };
+export type CloudChecklistCategory = { id: string; title: string; accent: string; items: CloudChecklistItem[] };
 
 const sharedId = "shared_fukuoka_trip";
 const initialMembers: TripMember[] = [
@@ -140,4 +142,49 @@ export function useCloudItinerary() {
     updateItem: (id: string, item: Partial<Omit<ItineraryItem, "id">>) => updateDoc(doc(db, "fukuoka_itinerary", id), item),
     deleteItem: (id: string) => deleteDoc(doc(db, "fukuoka_itinerary", id)),
   };
+}
+
+export function useCloudChecklist(memberId: string, initialCategories: CloudChecklistCategory[]) {
+  const [categories, setCategories] = useState<CloudChecklistCategory[]>(initialCategories);
+  const [cloudError, setCloudError] = useState("");
+
+  useEffect(() => {
+    if (!memberId) return;
+    const checklistRef = doc(db, "fukuoka_checklists", memberId);
+    return onSnapshot(
+      checklistRef,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          void setDoc(checklistRef, {
+            memberId,
+            categories: initialCategories,
+            userId: sharedId,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+          setCategories(initialCategories);
+          return;
+        }
+        const value = snapshot.data().categories;
+        if (Array.isArray(value)) setCategories(value as CloudChecklistCategory[]);
+        setCloudError("");
+      },
+      () => setCloudError("準備清單雲端同步失敗，請確認 Firebase 規則已部署。"),
+    );
+  }, [memberId, initialCategories]);
+
+  function save(update: (current: CloudChecklistCategory[]) => CloudChecklistCategory[]) {
+    setCategories((current) => {
+      const next = update(current);
+      if (memberId) {
+        void updateDoc(doc(db, "fukuoka_checklists", memberId), {
+          categories: next,
+          updatedAt: serverTimestamp(),
+        }).catch(() => setCloudError("準備清單儲存失敗，請稍後再試。"));
+      }
+      return next;
+    });
+  }
+
+  return { categories, cloudError, save };
 }
