@@ -145,6 +145,8 @@ function useStoredState<T>(key: string, initialValue: T): [T, Dispatch<SetStateA
 export default function HomePage() {
   const [view, setView] = useState<View>("home");
   const [selectedDate, setSelectedDate] = useState(tripDays[0].date);
+  const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
+  const [editDraft, setEditDraft] = useState<ItineraryItem | null>(null);
   const { items: cloudItinerary, cloudError, addItem, updateItem, deleteItem } = useCloudItinerary();
   const dayItems = useMemo(() => cloudItinerary.filter((item) => item.date === selectedDate), [cloudItinerary, selectedDate]);
 
@@ -157,13 +159,24 @@ export default function HomePage() {
     await addItem({ date: selectedDate, time, title, category: "景點", description, address: "", url: "" });
   }
 
-  async function editItineraryItem(item: ItineraryItem) {
-    const time = window.prompt("修改時間", item.time)?.trim();
-    if (!time) return;
-    const title = window.prompt("修改行程名稱", item.title)?.trim();
-    if (!title) return;
-    const description = window.prompt("修改行程說明", item.description)?.trim() ?? "";
-    await updateItem(item.id, { time, title, description });
+  function editItineraryItem(item: ItineraryItem) {
+    setEditingItem(item);
+    setEditDraft({ ...item });
+  }
+
+  async function saveItineraryItem(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingItem || !editDraft?.time.trim() || !editDraft.title.trim()) return;
+    await updateItem(editingItem.id, {
+      time: editDraft.time.trim(),
+      title: editDraft.title.trim(),
+      description: editDraft.description.trim(),
+      category: editDraft.category,
+      address: editDraft.address.trim(),
+      url: editDraft.url.trim(),
+    });
+    setEditingItem(null);
+    setEditDraft(null);
   }
 
   return (
@@ -184,7 +197,7 @@ export default function HomePage() {
               <Timeline
                 dayItems={dayItems}
                 selectedDate={selectedDate}
-                onEdit={(item) => void editItineraryItem(item)}
+                onEdit={editItineraryItem}
                 onDelete={(item) => {
                   if (window.confirm(`確定刪除「${item.title}」嗎？`)) void deleteItem(item.id);
                 }}
@@ -198,6 +211,36 @@ export default function HomePage() {
           </>
         )}
       </div>
+      {editingItem && editDraft ? (
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-stone-950/45 px-4 backdrop-blur-sm">
+          <form onSubmit={saveItineraryItem} className="max-h-[88vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-[#f7fbfe] p-5 shadow-[0_-18px_48px_rgba(8,47,82,0.24)]">
+            <div className="flex items-center justify-between border-b border-[#dce8f0] pb-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#d1a047]">Itinerary</p>
+                <h2 className="mt-1 font-serif text-2xl font-semibold text-[#082f52]">編輯行程</h2>
+              </div>
+              <button type="button" onClick={() => { setEditingItem(null); setEditDraft(null); }} className="rounded-full p-2 text-[#6c8295]" aria-label="關閉編輯行程">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <label className="mt-5 block text-xs font-medium text-[#6c8295]">時間</label>
+            <input value={editDraft.time} onChange={(event) => setEditDraft({ ...editDraft, time: event.target.value })} placeholder="例如 14:40" className="mt-2 w-full rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 text-[#163f62] outline-none focus:border-[#d1a047]" />
+            <label className="mt-4 block text-xs font-medium text-[#6c8295]">行程名稱</label>
+            <input value={editDraft.title} onChange={(event) => setEditDraft({ ...editDraft, title: event.target.value })} className="mt-2 w-full rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 text-[#163f62] outline-none focus:border-[#d1a047]" />
+            <label className="mt-4 block text-xs font-medium text-[#6c8295]">行程說明（顯示在標題下方的小字）</label>
+            <textarea value={editDraft.description} onChange={(event) => setEditDraft({ ...editDraft, description: event.target.value })} rows={4} className="mt-2 w-full resize-none rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 text-sm leading-6 text-[#163f62] outline-none focus:border-[#d1a047]" />
+            <label className="mt-4 block text-xs font-medium text-[#6c8295]">分類</label>
+            <select value={editDraft.category} onChange={(event) => setEditDraft({ ...editDraft, category: event.target.value as ItineraryCategory })} className="mt-2 w-full rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 text-[#163f62] outline-none">
+              {(["交通", "食物", "購物", "景點"] as ItineraryCategory[]).map((category) => <option key={category} value={category}>{category}</option>)}
+            </select>
+            <label className="mt-4 block text-xs font-medium text-[#6c8295]">地址（選填）</label>
+            <input value={editDraft.address} onChange={(event) => setEditDraft({ ...editDraft, address: event.target.value })} className="mt-2 w-full rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 text-sm text-[#163f62] outline-none focus:border-[#d1a047]" />
+            <label className="mt-4 block text-xs font-medium text-[#6c8295]">相關連結（選填）</label>
+            <input value={editDraft.url} onChange={(event) => setEditDraft({ ...editDraft, url: event.target.value })} inputMode="url" className="mt-2 w-full rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 text-sm text-[#163f62] outline-none focus:border-[#d1a047]" />
+            <button type="submit" className="mt-6 h-12 w-full rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.14em] text-white">儲存修改</button>
+          </form>
+        </div>
+      ) : null}
       <BottomNavigation view={view} setView={setView} />
     </main>
   );
