@@ -61,10 +61,10 @@ export const itinerary: ItineraryItem[] = [
   {
     id: "d1-01",
     date: "2026-10-03",
-    time: "07:30",
-    title: "出發 (JX846)",
+    time: "14:40",
+    title: "出發 (CI128)",
     category: "交通",
-    description: "搭乘星宇航空前往福岡，抵達後領取行李與租車資料。",
+    description: "搭乘中華航空前往福岡，預計 18:05 抵達福岡機場國際線航廈。",
     address: "Taiwan Taoyuan International Airport",
     url: "https://www.taoyuan-airport.com/",
   },
