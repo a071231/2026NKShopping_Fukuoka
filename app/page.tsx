@@ -16,6 +16,7 @@ import {
   Camera,
   Car,
   CheckSquare,
+  ChevronLeft,
   ChevronRight,
   ClipboardCheck,
   Cloud,
@@ -296,28 +297,44 @@ function DateRail({
   view: View;
   setView: (view: View) => void;
 }) {
+  const selectedIndex = tripDays.findIndex((day) => day.date === selectedDate);
+  const selectAdjacentDay = (offset: number) => {
+    const nextDay = tripDays[selectedIndex + offset];
+    if (!nextDay) return;
+    onSelect(nextDay.date);
+    setView("home");
+  };
+
   return (
-    <nav className="no-scrollbar flex overflow-x-auto py-1">
-      {tripDays.map((day) => {
-        const active = day.date === selectedDate && view === "home";
-        return (
-          <button
-            key={day.date}
-            onClick={() => {
-              onSelect(day.date);
-              setView("home");
-            }}
-            className={cn(
-              "mr-3 flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full border bg-white/60 font-serif shadow-[0_8px_20px_rgba(8,47,82,0.07)]",
-              active ? "border-[#d1a047] text-[#123f66]" : "border-[#dce8f0] text-[#8fa2b2]",
-            )}
-          >
-            <span className="text-xs">{day.day}</span>
-            <span className="mt-0.5 text-[10px] uppercase">{day.weekday}</span>
-          </button>
-        );
-      })}
-    </nav>
+    <div className="flex items-center gap-2">
+      <button type="button" onClick={() => selectAdjacentDay(-1)} disabled={selectedIndex <= 0} className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d7e5ef] bg-white/80 text-[#496782] shadow-sm transition hover:border-[#d1a047] hover:text-[#b78023] disabled:cursor-not-allowed disabled:opacity-30 md:flex" aria-label="前一天">
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+      <nav className="no-scrollbar flex min-w-0 flex-1 overflow-x-auto py-1">
+        {tripDays.map((day) => {
+          const active = day.date === selectedDate && view === "home";
+          return (
+            <button
+              key={day.date}
+              onClick={() => {
+                onSelect(day.date);
+                setView("home");
+              }}
+              className={cn(
+                "mr-3 flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full border bg-white/60 font-serif shadow-[0_8px_20px_rgba(8,47,82,0.07)]",
+                active ? "border-[#d1a047] text-[#123f66]" : "border-[#dce8f0] text-[#8fa2b2]",
+              )}
+            >
+              <span className="text-xs">{day.day}</span>
+              <span className="mt-0.5 text-[10px] uppercase">{day.weekday}</span>
+            </button>
+          );
+        })}
+      </nav>
+      <button type="button" onClick={() => selectAdjacentDay(1)} disabled={selectedIndex < 0 || selectedIndex >= tripDays.length - 1} className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d7e5ef] bg-white/80 text-[#496782] shadow-sm transition hover:border-[#d1a047] hover:text-[#b78023] disabled:cursor-not-allowed disabled:opacity-30 md:flex" aria-label="後一天">
+        <ChevronRight className="h-5 w-5" />
+      </button>
+    </div>
   );
 }
 
