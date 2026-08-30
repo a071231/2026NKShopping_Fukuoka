@@ -818,18 +818,6 @@ function ToolsView() {
         </div>
       </a>
 
-      <section className="mt-9">
-        <div className="mb-4 flex items-center gap-2 text-[#0b3558]">
-          <Car className="h-5 w-5" />
-          <h2 className="font-serif text-2xl font-semibold">交通卡片</h2>
-        </div>
-        <div className="rounded-2xl border border-white/70 bg-white/82 p-5 shadow-[0_16px_38px_rgba(8,47,82,0.08)]">
-          <p className="text-xs uppercase tracking-[0.24em] text-[#8fa2b2]">給司機 (TO DRIVER)</p>
-          <p className="mt-4 font-serif text-2xl font-semibold text-[#0b3558]">ここへ行ってください。</p>
-          <p className="mt-2 text-sm text-[#6c8295]">請載我到這裡</p>
-        </div>
-      </section>
-
       <section className="mt-9 space-y-4">
         {infoCards.map((card) => (
           <article key={card.title} className="rounded-2xl border border-white/70 bg-white/82 p-5 shadow-[0_12px_30px_rgba(8,47,82,0.07)]">
