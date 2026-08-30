@@ -31,6 +31,7 @@ import {
   Pencil,
   Plane,
   Plus,
+  Phone,
   ReceiptText,
   ShoppingBag,
   StickyNote,
@@ -52,8 +53,8 @@ type ChecklistItem = { id: string; label: string; done: boolean };
 type ChecklistCategory = { id: string; title: string; accent: string; items: ChecklistItem[] };
 
 const mapUrl = "https://maps.app.goo.gl/oYZVFgyA9oiwbB7Q7";
-const defaultHotelLink = "https://www.jrhotelgroup.com/hotel/192/";
-const defaultHotelNote = "入住時請確認早餐時間、停車位置與房型資訊。若有訂房確認信或 QR Code，可將截圖上傳到這裡。";
+const defaultHotelLink = "https://www.google.com/maps/search/?api=1&query=Randor+Residential+Hotel+Fukuoka+Annex";
+const defaultHotelNote = "Agoda 訂單編號：1742593424";
 const heroImage = "/images/fukuoka-coast-hero.jpg";
 
 const categoryMeta: Record<
@@ -393,13 +394,13 @@ function WeatherCard() {
 }
 
 function StayCard() {
-  const [hotelLink, setHotelLink] = useStoredState("nk-trip-hotel-link", defaultHotelLink);
+  const [hotelLink, setHotelLink] = useStoredState("nk-trip-hotel-link-v2", defaultHotelLink);
   const [draftLink, setDraftLink] = useState(hotelLink);
   const [editingLink, setEditingLink] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesEditing, setNotesEditing] = useState(false);
-  const [noteText, setNoteText] = useStoredState("nk-trip-hotel-note-text", defaultHotelNote);
+  const [noteText, setNoteText] = useStoredState("nk-trip-hotel-note-text-v2", defaultHotelNote);
   const [draftNoteText, setDraftNoteText] = useState(noteText);
   const [noteImages, setNoteImages] = useStoredState<string[]>("nk-trip-hotel-note-images", []);
 
@@ -408,7 +409,7 @@ function StayCard() {
   }, [editingLink, hotelLink]);
 
   async function copyStayInfo() {
-    await navigator.clipboard.writeText(["住宿資訊", hotel.name, hotel.dates, hotel.address, hotelLink].join("\n"));
+    await navigator.clipboard.writeText(["住宿資訊", `${hotel.name} (${hotel.englishName})`, `電話：${hotel.phone}`, `入住：${hotel.checkIn}`, `退房：${hotel.checkOut}`, `Agoda 訂單編號：${hotel.orderNumber}`, hotelLink].join("\n"));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
@@ -491,24 +492,25 @@ function StayCard() {
         >
           <img src={hotel.image} alt={hotel.name} className="h-full min-h-[142px] w-full rounded-xl object-cover" />
           <div className="flex min-w-0 flex-col px-4 py-1">
-            <h2 className="font-serif text-xl font-semibold leading-tight text-[#082f52]">{hotel.name}</h2>
+            <h2 className="font-serif text-lg font-semibold leading-tight text-[#082f52]">{hotel.name}</h2>
+            <p className="mt-1 text-[10px] leading-snug text-[#6c8295]">{hotel.englishName}</p>
             <p className="mt-3 flex min-w-0 items-start gap-2 text-xs leading-relaxed text-[#6c8295]">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span className="line-clamp-2">{hotel.address}</span>
+              <Phone className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{hotel.phone}</span>
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="flex items-start gap-2">
                 <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[#d1a047]" strokeWidth={1.4} />
                 <div>
                   <p className="text-[10px] text-[#8fa2b2]">入住</p>
-                  <p className="mt-0.5 font-serif text-sm text-[#163f62]">10/03</p>
+                  <p className="mt-0.5 font-serif text-sm text-[#163f62]">10/03 15:00</p>
                 </div>
               </div>
               <div className="flex items-start gap-2">
                 <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[#d1a047]" strokeWidth={1.4} />
                 <div>
                   <p className="text-[10px] text-[#8fa2b2]">退房</p>
-                  <p className="mt-0.5 font-serif text-sm text-[#163f62]">10/07</p>
+                  <p className="mt-0.5 font-serif text-sm text-[#163f62]">10/11 11:00</p>
                 </div>
               </div>
             </div>
@@ -718,7 +720,7 @@ function Timeline({
 function ToolsView() {
   const infoCards = [
     { type: "RESERVATION", title: "Toyota Rent a Car (熊本)", detail: "10/3 取車" },
-    { type: "HOTEL", title: "The Blossom Kumamoto", detail: "住宿地址與訂房資訊" },
+    { type: "HOTEL", title: "福岡蘭多住宅飯店附樓", detail: "10/3 15:00 入住 · 10/11 11:00 退房" },
     { type: "HOTEL", title: "由布院 玉の湯", detail: "Open Link →" },
     { type: "ACTIVITY", title: "茅乃舍 餐廳", detail: "Open Link →" },
   ];
