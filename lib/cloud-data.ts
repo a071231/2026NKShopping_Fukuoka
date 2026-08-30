@@ -93,14 +93,18 @@ export function useCloudItinerary() {
             ? data.category
             : "景點";
 
+          const isOldDefaultOutboundFlight = itemDoc.id === "d1-01" && data.title === "出發 (JX846)";
+
           return [
             {
               id: itemDoc.id,
               date: data.date,
-              time: data.time,
-              title: data.title,
+              time: isOldDefaultOutboundFlight ? "14:40" : data.time,
+              title: isOldDefaultOutboundFlight ? "出發 (CI128)" : data.title,
               category,
-              description: typeof data.description === "string" ? data.description : "",
+              description: isOldDefaultOutboundFlight
+                ? "搭乘中華航空前往福岡，預計 18:05 抵達福岡機場國際線航廈。"
+                : typeof data.description === "string" ? data.description : "",
               address: typeof data.address === "string" ? data.address : "",
               url: typeof data.url === "string" ? data.url : "",
             } satisfies ItineraryItem,
