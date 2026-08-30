@@ -44,13 +44,11 @@ import {
 } from "lucide-react";
 
 import { hotel, tripDays, weatherForecast, type ItineraryCategory, type ItineraryItem, type WeatherIcon } from "@/data/trip";
-import { useCloudItinerary, useCloudMembers, type TripMember } from "@/lib/cloud-data";
+import { useCloudChecklist, useCloudItinerary, useCloudMembers, type CloudChecklistCategory, type TripMember } from "@/lib/cloud-data";
 import { cn } from "@/lib/utils";
 
 type View = "home" | "tools" | "ledger" | "checklist";
 type Expense = { id: string; title: string; amount: number; payer: string; paid?: boolean };
-type ChecklistItem = { id: string; label: string; done: boolean };
-type ChecklistCategory = { id: string; title: string; accent: string; items: ChecklistItem[] };
 
 const mapUrl = "https://maps.app.goo.gl/oYZVFgyA9oiwbB7Q7";
 const defaultHotelLink = "https://www.google.com/maps/search/?api=1&query=Randor+Residential+Hotel+Fukuoka+Annex";
@@ -83,7 +81,7 @@ const initialExpenses: Expense[] = [
   { id: "e7", title: "D1 午餐 魚飯時", amount: 3458, payer: "member-paipai", paid: true },
 ];
 
-const initialChecklist: ChecklistCategory[] = [
+const initialChecklist: CloudChecklistCategory[] = [
   {
     id: "docs",
     title: "證件錢包",
@@ -1098,7 +1096,11 @@ function LedgerView() {
 }
 
 function ChecklistView() {
-  const [categories, setCategories] = useStoredState("nk-trip-checklist", initialChecklist);
+  const { members } = useCloudMembers();
+  const [selectedMemberId, setSelectedMemberId] = useState("");
+  const activeMemberId = members.some((member) => member.id === selectedMemberId) ? selectedMemberId : members[0]?.id ?? "";
+  const activeMember = members.find((member) => member.id === activeMemberId);
+  const { categories, cloudError, save: saveCategories } = useCloudChecklist(activeMemberId, initialChecklist);
   const [adding, setAdding] = useState(false);
   const [categoryId, setCategoryId] = useState(initialChecklist[0].id);
   const [label, setLabel] = useState("");
@@ -1106,7 +1108,7 @@ function ChecklistView() {
   const doneItems = categories.reduce((sum, category) => sum + category.items.filter((item) => item.done).length, 0);
 
   function toggleItem(categoryIdToUpdate: string, itemId: string) {
-    setCategories((current) =>
+    saveCategories((current) =>
       current.map((category) =>
         category.id === categoryIdToUpdate
           ? { ...category, items: category.items.map((item) => (item.id === itemId ? { ...item, done: !item.done } : item)) }
@@ -1116,7 +1118,7 @@ function ChecklistView() {
   }
 
   function removeItem(categoryIdToUpdate: string, itemId: string) {
-    setCategories((current) =>
+    saveCategories((current) =>
       current.map((category) => (category.id === categoryIdToUpdate ? { ...category, items: category.items.filter((item) => item.id !== itemId) } : category)),
     );
   }
@@ -1125,7 +1127,7 @@ function ChecklistView() {
     event.preventDefault();
     const trimmedLabel = label.trim();
     if (!trimmedLabel) return;
-    setCategories((current) =>
+    saveCategories((current) =>
       current.map((category) => (category.id === categoryId ? { ...category, items: [...category.items, { id: crypto.randomUUID(), label: trimmedLabel, done: false }] } : category)),
     );
     setLabel("");
@@ -1149,6 +1151,30 @@ function ChecklistView() {
           <p className="text-[10px] tracking-[0.16em] text-[#8fa2b2]">READY</p>
         </div>
       </div>
+      <div className="mt-6 rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm">
+        <p className="text-xs font-medium text-[#6c8295]">選擇正在整理清單的成員</p>
+        <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+          {members.map((member) => (
+            <button
+              key={member.id}
+              type="button"
+              onClick={() => {
+                setSelectedMemberId(member.id);
+                setAdding(false);
+              }}
+              className="flex shrink-0 flex-col items-center gap-1.5"
+              aria-label={`查看 ${member.name} 的準備清單`}
+            >
+              <span className={cn("h-12 w-12 overflow-hidden rounded-full border-2", activeMemberId === member.id ? "border-[#cf9c3e] ring-2 ring-[#f4dfb5]" : "border-white ring-1 ring-[#d4e4ee]")}>
+                {member.avatar ? <Image src={member.avatar} alt={member.name} width={48} height={48} unoptimized className="h-full w-full object-cover" /> : <span className="flex h-full w-full items-center justify-center bg-[#e8f3f9] text-xs font-semibold text-[#2f82a5]">{member.name.slice(0, 2)}</span>}
+              </span>
+              <span className={cn("max-w-14 truncate text-[10px]", activeMemberId === member.id ? "font-semibold text-[#0b3558]" : "text-[#8fa2b2]")}>{member.name}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-[#496782]">目前顯示：{activeMember?.name ?? "尚無成員"} 的清單</p>
+      </div>
+      {cloudError ? <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-600">{cloudError}</p> : null}
       <div className="mt-7 space-y-5">
         {categories.map((category) => {
           const done = category.items.filter((item) => item.done).length;
