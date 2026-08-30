@@ -80,7 +80,34 @@ export function useCloudItinerary() {
     return onSnapshot(
       itineraryQuery,
       (snapshot) => {
-        if (snapshot.empty) {
+        const validItems = snapshot.docs.flatMap((itemDoc) => {
+          const data = itemDoc.data();
+
+          // Earlier versions stored itinerary documents with a different shape.
+          // Keep those documents untouched, but do not let them break this UI.
+          if (typeof data.date !== "string" || typeof data.time !== "string" || typeof data.title !== "string") {
+            return [];
+          }
+
+          const category: ItineraryItem["category"] = ["交通", "食物", "購物", "景點"].includes(data.category)
+            ? data.category
+            : "景點";
+
+          return [
+            {
+              id: itemDoc.id,
+              date: data.date,
+              time: data.time,
+              title: data.title,
+              category,
+              description: typeof data.description === "string" ? data.description : "",
+              address: typeof data.address === "string" ? data.address : "",
+              url: typeof data.url === "string" ? data.url : "",
+            } satisfies ItineraryItem,
+          ];
+        });
+
+        if (validItems.length === 0) {
           void Promise.all(
             initialItinerary.map((item) =>
               setDoc(doc(db, "fukuoka_itinerary", item.id), {
@@ -93,9 +120,7 @@ export function useCloudItinerary() {
           return;
         }
         setItems(
-          snapshot.docs
-            .map((itemDoc) => ({ id: itemDoc.id, ...itemDoc.data() }) as ItineraryItem)
-            .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
+          validItems.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
         );
         setCloudError("");
       },
