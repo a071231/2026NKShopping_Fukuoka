@@ -721,8 +721,8 @@ function ToolsView() {
     { type: "ACTIVITY", title: "茅乃舍 餐廳", detail: "Open Link →" },
   ];
   const flightTickets = [
-    { id: "flight-out", label: "去程航班", date: "03 Oct 2026", from: "TPE", fromName: "TAIPEI TAIWAN TAOYUAN INTL", fromTerminal: "2", to: "FUK", toName: "FUKUOKA FUKUOKA", toTerminal: "I", depart: "14:40", arrive: "18:05", airline: "中華航空", flightNo: "CI128" },
-    { id: "flight-back", label: "回程航班", date: "11 Oct 2026", from: "FUK", fromName: "FUKUOKA FUKUOKA", fromTerminal: "I", to: "TPE", toName: "TAIPEI TAIWAN TAOYUAN INTL", toTerminal: "2", depart: "11:00", arrive: "12:30", airline: "中華航空", flightNo: "CI111" },
+    { id: "flight-out", label: "去程航班", date: "03 Oct 2026", from: "TPE", fromName: "桃園", fromTerminal: "2", to: "FUK", toName: "福岡", toTerminal: "I", depart: "14:40", arrive: "18:05", airline: "中華航空", flightNo: "CI128" },
+    { id: "flight-back", label: "回程航班", date: "11 Oct 2026", from: "FUK", fromName: "福岡", fromTerminal: "I", to: "TPE", toName: "桃園", toTerminal: "2", depart: "11:00", arrive: "12:30", airline: "中華航空", flightNo: "CI111" },
   ];
 
   return (
