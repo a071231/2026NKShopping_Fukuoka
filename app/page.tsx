@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import {
   type ComponentType,
   type Dispatch,
@@ -11,6 +13,7 @@ import {
 } from "react";
 import {
   CalendarDays,
+  Camera,
   Car,
   CheckSquare,
   ChevronRight,
@@ -34,6 +37,7 @@ import {
   Sun,
   Trash2,
   Utensils,
+  Users,
   WalletCards,
   X,
 } from "lucide-react";
@@ -46,11 +50,20 @@ type Payer = "K" | "M" | "E" | "G" | "J";
 type Expense = { id: string; title: string; amount: number; payer: Payer; paid?: boolean };
 type ChecklistItem = { id: string; label: string; done: boolean };
 type ChecklistCategory = { id: string; title: string; accent: string; items: ChecklistItem[] };
+type TripMember = { id: string; name: string; avatar: string };
 
 const mapUrl = "https://maps.app.goo.gl/oYZVFgyA9oiwbB7Q7";
 const defaultHotelLink = "https://www.jrhotelgroup.com/hotel/192/";
 const defaultHotelNote = "入住時請確認早餐時間、停車位置與房型資訊。若有訂房確認信或 QR Code，可將截圖上傳到這裡。";
 const heroImage = "/images/fukuoka-coast-hero.jpg";
+
+const initialMembers: TripMember[] = [
+  { id: "member-00", name: "00", avatar: "" },
+  { id: "member-mom", name: "媽媽", avatar: "" },
+  { id: "member-uu", name: "UU", avatar: "" },
+  { id: "member-tuna", name: "鮪魚", avatar: "" },
+  { id: "member-paipai", name: "派派", avatar: "" },
+];
 
 const payerStyle: Record<Payer, string> = {
   K: "border-blue-200 bg-blue-50 text-blue-600",
@@ -696,6 +709,7 @@ function ToolsView() {
   return (
     <section className="px-5 pt-7">
       <p className="text-sm tracking-[0.08em] text-[#6b8397]">全覽地圖與重要資訊</p>
+      <MembersCard />
       <div className="mt-6 overflow-hidden rounded-2xl border border-white/70 bg-white/82 shadow-[0_16px_40px_rgba(8,47,82,0.1)]">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2 text-[#2f82a5]">
@@ -774,6 +788,113 @@ function ToolsView() {
           </article>
         ))}
       </section>
+    </section>
+  );
+}
+
+function MembersCard() {
+  const [members, setMembers] = useStoredState<TripMember[]>("nk-trip-members", initialMembers);
+  const [newMemberName, setNewMemberName] = useState("");
+
+  function addMember(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = newMemberName.trim();
+    if (!name || members.some((member) => member.name === name)) return;
+    setMembers((current) => [...current, { id: crypto.randomUUID(), name, avatar: "" }]);
+    setNewMemberName("");
+  }
+
+  function deleteMember(member: TripMember) {
+    if (!window.confirm(`確定要刪除「${member.name}」嗎？`)) return;
+    setMembers((current) => current.filter((item) => item.id !== member.id));
+  }
+
+  function updateAvatar(memberId: string, files: FileList | null) {
+    const file = files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const photo = document.createElement("img");
+      photo.onload = () => {
+        const size = 320;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext("2d");
+        if (!context) return;
+
+        const scale = Math.max(size / photo.naturalWidth, size / photo.naturalHeight);
+        const width = photo.naturalWidth * scale;
+        const height = photo.naturalHeight * scale;
+        context.drawImage(photo, (size - width) / 2, (size - height) / 2, width, height);
+        const avatar = canvas.toDataURL("image/jpeg", 0.78);
+        setMembers((current) => current.map((member) => (member.id === memberId ? { ...member, avatar } : member)));
+      };
+      photo.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <section className="mt-6 rounded-2xl border border-white/70 bg-white/82 p-5 shadow-[0_16px_40px_rgba(8,47,82,0.1)]">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#e8f3f9] text-[#2f82a5]">
+            <Users className="h-5 w-5" strokeWidth={1.7} />
+          </span>
+          <div>
+            <h2 className="font-serif text-xl font-semibold tracking-[0.06em] text-[#0b3558]">成員</h2>
+            <p className="mt-1 text-[11px] text-[#8fa2b2]">點選大頭貼即可更換照片</p>
+          </div>
+        </div>
+        <span className="rounded-full bg-[#edf5fa] px-3 py-1 text-xs font-semibold text-[#6c8295]">{members.length} 人</span>
+      </div>
+
+      <div className="mt-6 grid grid-cols-3 gap-x-3 gap-y-6">
+        {members.map((member) => (
+          <div key={member.id} className="group flex min-w-0 flex-col items-center text-center">
+            <label className="relative h-20 w-20 cursor-pointer overflow-hidden rounded-full border-2 border-white bg-[#e8f3f9] shadow-[0_8px_22px_rgba(8,47,82,0.14)] ring-1 ring-[#d4e4ee]">
+              {member.avatar ? (
+                <Image src={member.avatar} alt={`${member.name}的大頭貼`} width={80} height={80} unoptimized className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center font-serif text-xl font-semibold text-[#2f82a5]">{member.name.slice(0, 2)}</span>
+              )}
+              <span className="absolute inset-0 flex items-center justify-center bg-[#062d50]/45 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                <Camera className="h-5 w-5" strokeWidth={1.8} />
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  updateAvatar(member.id, event.target.files);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+            <p className="mt-3 max-w-full truncate text-sm font-semibold text-[#0b3558]">{member.name}</p>
+            <button type="button" onClick={() => deleteMember(member)} className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-[#8fa2b2] transition-colors hover:text-rose-500">
+              <Trash2 className="h-3 w-3" strokeWidth={1.6} />
+              刪除
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={addMember} className="mt-6 flex gap-2 border-t border-[#e3edf4] pt-5">
+        <input
+          value={newMemberName}
+          onChange={(event) => setNewMemberName(event.target.value)}
+          maxLength={20}
+          placeholder="輸入新成員名稱"
+          className="min-w-0 flex-1 rounded-full border border-[#d7e5ef] bg-white/75 px-4 py-2.5 text-sm text-[#163f62] outline-none placeholder:text-[#a4b5c2] focus:border-[#d1a047]"
+        />
+        <button type="submit" className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#0a3d66] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#12557f]">
+          <Plus className="h-4 w-4" />
+          新增
+        </button>
+      </form>
     </section>
   );
 }
