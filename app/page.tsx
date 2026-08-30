@@ -774,12 +774,6 @@ function Timeline({
 }
 
 function ToolsView() {
-  const infoCards = [
-    { type: "RESERVATION", title: "Toyota Rent a Car (熊本)", detail: "10/3 取車" },
-    { type: "HOTEL", title: "福岡蘭多住宅飯店附樓", detail: "10/3 15:00 入住 · 10/11 11:00 退房" },
-    { type: "HOTEL", title: "由布院 玉の湯", detail: "Open Link →" },
-    { type: "ACTIVITY", title: "茅乃舍 餐廳", detail: "Open Link →" },
-  ];
   const flightTickets = [
     { id: "flight-out", label: "去程航班", date: "03 Oct 2026", from: "TPE", fromName: "桃園", fromTerminal: "2", to: "FUK", toName: "福岡", toTerminal: "I", depart: "14:40", arrive: "18:05", airline: "中華航空", flightNo: "CI128" },
     { id: "flight-back", label: "回程航班", date: "11 Oct 2026", from: "FUK", fromName: "福岡", fromTerminal: "I", to: "TPE", toName: "桃園", toTerminal: "2", depart: "11:00", arrive: "12:30", airline: "中華航空", flightNo: "CI111" },
@@ -818,18 +812,6 @@ function ToolsView() {
         </div>
       </a>
 
-      <section className="mt-9 space-y-4">
-        {infoCards.map((card) => (
-          <article key={card.title} className="rounded-2xl border border-white/70 bg-white/82 p-5 shadow-[0_12px_30px_rgba(8,47,82,0.07)]">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-[#8fa2b2]">{card.type}</p>
-            <h3 className="mt-3 font-serif text-xl font-semibold text-[#0b3558]">{card.title}</h3>
-            <div className="mt-5 flex items-center justify-between border-t border-dashed border-[#dbe8f0] pt-4">
-              <p className="text-sm text-[#6c8295]">{card.detail}</p>
-              <Copy className="h-4 w-4 text-[#8fa2b2]" />
-            </div>
-          </article>
-        ))}
-      </section>
     </section>
   );
 }
