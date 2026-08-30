@@ -24,7 +24,6 @@ import {
   ExternalLink,
   Home,
   Info,
-  Map,
   MapPin,
   Navigation,
   PackagePlus,
@@ -50,7 +49,6 @@ import { cn } from "@/lib/utils";
 type View = "home" | "tools" | "ledger" | "checklist";
 type Expense = { id: string; title: string; amount: number; payer: string; paid?: boolean };
 
-const mapUrl = "https://maps.app.goo.gl/oYZVFgyA9oiwbB7Q7";
 const defaultHotelLink = "https://www.google.com/maps/search/?api=1&query=Randor+Residential+Hotel+Fukuoka+Annex";
 const defaultHotelNote = "Agoda 訂單編號：1742593424";
 const heroImage = "/images/fukuoka-coast-hero.jpg";
@@ -729,33 +727,8 @@ function ToolsView() {
 
   return (
     <section className="px-5 pt-7">
-      <p className="text-sm tracking-[0.08em] text-[#6b8397]">全覽地圖與重要資訊</p>
+      <p className="text-sm tracking-[0.08em] text-[#6b8397]">旅行重要資訊</p>
       <MembersCard />
-      <div className="mt-6 overflow-hidden rounded-2xl border border-white/70 bg-white/82 shadow-[0_16px_40px_rgba(8,47,82,0.1)]">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2 text-[#2f82a5]">
-            <Map className="h-4 w-4" />
-            <span className="font-semibold">全九州地圖</span>
-          </div>
-          <span className="text-xs text-[#8fa2b2]">Google Maps</span>
-        </div>
-        <div className="relative h-[230px] overflow-hidden bg-[#dcebdc]">
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,#dcebdc_0%,#e9f1dc_42%,#b9d7e4_43%,#b9d7e4_58%,#efe0bf_59%,#f7ead0_100%)]" />
-          {["福岡", "熊本", "阿蘇", "由布院", "北九州"].map((city, index) => (
-            <span
-              key={city}
-              className="absolute rounded-full border-2 border-white bg-[#d1a047] px-2 py-1 text-xs font-semibold text-white shadow"
-              style={{ left: `${18 + index * 14}%`, top: `${30 + (index % 3) * 14}%` }}
-            >
-              {city}
-            </span>
-          ))}
-        </div>
-        <a href={mapUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 py-3 font-serif text-[#496782]">
-          <ExternalLink className="h-4 w-4" />
-          開啟 Google Maps 導航
-        </a>
-      </div>
 
       <section className="mt-8">
         <div className="mb-4 flex items-center justify-between">
