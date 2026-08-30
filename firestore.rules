@@ -66,6 +66,13 @@ service cloud.firestore {
         && data.userId == 'shared_fukuoka_trip';
     }
 
+    function isValidChecklist(data) {
+      return data.keys().hasAll(['memberId', 'categories', 'userId', 'createdAt', 'updatedAt'])
+        && data.memberId is string && isValidId(data.memberId)
+        && data.categories is list && data.categories.size() <= 20
+        && data.userId == 'shared_fukuoka_trip';
+    }
+
     match /fukuoka_tasks/{taskId} {
       allow get: if isSignedIn() && existing().userId == 'shared_fukuoka_trip' && isValidId(taskId);
       allow list: if isSignedIn() && resource.data.userId == 'shared_fukuoka_trip';
@@ -179,6 +186,30 @@ service cloud.firestore {
       allow delete: if isSignedIn()
         && isValidId(memberId)
         && existing().userId == 'shared_fukuoka_trip';
+    }
+
+    match /fukuoka_checklists/{memberId} {
+      allow get: if isSignedIn()
+        && isValidId(memberId)
+        && (resource == null || existing().userId == 'shared_fukuoka_trip');
+
+      allow create: if isSignedIn()
+        && isValidId(memberId)
+        && isValidChecklist(incoming())
+        && incoming().memberId == memberId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && incoming().keys().size() == 5;
+
+      allow update: if isSignedIn()
+        && isValidId(memberId)
+        && existing().userId == 'shared_fukuoka_trip'
+        && isValidChecklist(incoming())
+        && incoming().memberId == existing().memberId
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['categories', 'updatedAt']);
     }
   }
 }
