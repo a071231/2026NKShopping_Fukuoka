@@ -54,7 +54,7 @@ export const hotel = {
   checkOut: "2026年10月11日 星期日 11:00",
   dates: "2026.10.03 - 2026.10.11",
   orderNumber: "1742593424",
-  image: "/images/fukuoka-coast-hero.jpg",
+  image: "/images/randor-fukuoka-annex.jpg",
 };
 
 export const itinerary: ItineraryItem[] = [
