@@ -42,7 +42,8 @@ import {
   X,
 } from "lucide-react";
 
-import { hotel, itinerary, tripDays, weatherForecast, type ItineraryCategory, type WeatherIcon } from "@/data/trip";
+import { hotel, tripDays, weatherForecast, type ItineraryCategory, type ItineraryItem, type WeatherIcon } from "@/data/trip";
+import { useCloudItinerary, useCloudMembers, type TripMember } from "@/lib/cloud-data";
 import { cn } from "@/lib/utils";
 
 type View = "home" | "tools" | "ledger" | "checklist";
@@ -50,20 +51,11 @@ type Payer = "K" | "M" | "E" | "G" | "J";
 type Expense = { id: string; title: string; amount: number; payer: Payer; paid?: boolean };
 type ChecklistItem = { id: string; label: string; done: boolean };
 type ChecklistCategory = { id: string; title: string; accent: string; items: ChecklistItem[] };
-type TripMember = { id: string; name: string; avatar: string };
 
 const mapUrl = "https://maps.app.goo.gl/oYZVFgyA9oiwbB7Q7";
 const defaultHotelLink = "https://www.jrhotelgroup.com/hotel/192/";
 const defaultHotelNote = "入住時請確認早餐時間、停車位置與房型資訊。若有訂房確認信或 QR Code，可將截圖上傳到這裡。";
 const heroImage = "/images/fukuoka-coast-hero.jpg";
-
-const initialMembers: TripMember[] = [
-  { id: "member-00", name: "00", avatar: "" },
-  { id: "member-mom", name: "媽媽", avatar: "" },
-  { id: "member-uu", name: "UU", avatar: "" },
-  { id: "member-tuna", name: "鮪魚", avatar: "" },
-  { id: "member-paipai", name: "派派", avatar: "" },
-];
 
 const payerStyle: Record<Payer, string> = {
   K: "border-blue-200 bg-blue-50 text-blue-600",
@@ -165,7 +157,26 @@ function useStoredState<T>(key: string, initialValue: T): [T, Dispatch<SetStateA
 export default function HomePage() {
   const [view, setView] = useState<View>("home");
   const [selectedDate, setSelectedDate] = useState(tripDays[0].date);
-  const dayItems = useMemo(() => itinerary.filter((item) => item.date === selectedDate), [selectedDate]);
+  const { items: cloudItinerary, cloudError, addItem, updateItem, deleteItem } = useCloudItinerary();
+  const dayItems = useMemo(() => cloudItinerary.filter((item) => item.date === selectedDate), [cloudItinerary, selectedDate]);
+
+  async function addItineraryItem() {
+    const time = window.prompt("請輸入時間（例如 10:30）", "10:00")?.trim();
+    if (!time) return;
+    const title = window.prompt("請輸入行程名稱")?.trim();
+    if (!title) return;
+    const description = window.prompt("請輸入行程說明", "")?.trim() ?? "";
+    await addItem({ date: selectedDate, time, title, category: "景點", description, address: "", url: "" });
+  }
+
+  async function editItineraryItem(item: ItineraryItem) {
+    const time = window.prompt("修改時間", item.time)?.trim();
+    if (!time) return;
+    const title = window.prompt("修改行程名稱", item.title)?.trim();
+    if (!title) return;
+    const description = window.prompt("修改行程說明", item.description)?.trim() ?? "";
+    await updateItem(item.id, { time, title, description });
+  }
 
   return (
     <main className="min-h-screen bg-[#dcecf7] text-[#082f52]">
@@ -178,7 +189,18 @@ export default function HomePage() {
               <StayCard />
               <SectionHeading title="每日行程" />
               <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} view={view} setView={setView} />
-              <Timeline dayItems={dayItems} selectedDate={selectedDate} />
+              {cloudError ? <p className="rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-600">{cloudError}</p> : null}
+              <button onClick={() => void addItineraryItem()} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] px-4 py-3 text-sm font-semibold text-white shadow-sm">
+                <Plus className="h-4 w-4" /> 新增這天的行程
+              </button>
+              <Timeline
+                dayItems={dayItems}
+                selectedDate={selectedDate}
+                onEdit={(item) => void editItineraryItem(item)}
+                onDelete={(item) => {
+                  if (window.confirm(`確定刪除「${item.title}」嗎？`)) void deleteItem(item.id);
+                }}
+              />
             </div>
           </>
         ) : (
@@ -623,9 +645,13 @@ function StayCard() {
 function Timeline({
   dayItems,
   selectedDate,
+  onEdit,
+  onDelete,
 }: {
-  dayItems: typeof itinerary;
+  dayItems: ItineraryItem[];
   selectedDate: string;
+  onEdit: (item: ItineraryItem) => void;
+  onDelete: (item: ItineraryItem) => void;
 }) {
   const selectedDay = tripDays.find((day) => day.date === selectedDate);
   const weekdayLabel: Record<string, string> = {
@@ -684,7 +710,11 @@ function Timeline({
                     {item.description}
                   </p>
                 </div>
-                <Icon className="h-5 w-5 text-[#c8963e]" strokeWidth={1.45} />
+                <div className="flex flex-col items-center gap-2">
+                  <Icon className="h-5 w-5 text-[#c8963e]" strokeWidth={1.45} />
+                  <button onClick={() => onEdit(item)} className="text-[#6c8295]" aria-label={`編輯${item.title}`}><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => onDelete(item)} className="text-rose-400" aria-label={`刪除${item.title}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
               </article>
             );
           })}
@@ -793,20 +823,24 @@ function ToolsView() {
 }
 
 function MembersCard() {
-  const [members, setMembers] = useStoredState<TripMember[]>("nk-trip-members", initialMembers);
+  const { members, cloudError, addMember: addCloudMember, deleteMember: deleteCloudMember, updateAvatar: updateCloudAvatar } = useCloudMembers();
   const [newMemberName, setNewMemberName] = useState("");
 
-  function addMember(event: FormEvent<HTMLFormElement>) {
+  async function addMember(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = newMemberName.trim();
     if (!name || members.some((member) => member.name === name)) return;
-    setMembers((current) => [...current, { id: crypto.randomUUID(), name, avatar: "" }]);
-    setNewMemberName("");
+    try {
+      await addCloudMember(name);
+      setNewMemberName("");
+    } catch {
+      window.alert("新增失敗，請確認 Firebase 規則已部署。");
+    }
   }
 
-  function deleteMember(member: TripMember) {
+  async function deleteMember(member: TripMember) {
     if (!window.confirm(`確定要刪除「${member.name}」嗎？`)) return;
-    setMembers((current) => current.filter((item) => item.id !== member.id));
+    await deleteCloudMember(member.id);
   }
 
   function updateAvatar(memberId: string, files: FileList | null) {
@@ -829,7 +863,7 @@ function MembersCard() {
         const height = photo.naturalHeight * scale;
         context.drawImage(photo, (size - width) / 2, (size - height) / 2, width, height);
         const avatar = canvas.toDataURL("image/jpeg", 0.78);
-        setMembers((current) => current.map((member) => (member.id === memberId ? { ...member, avatar } : member)));
+        void updateCloudAvatar(memberId, avatar).catch(() => window.alert("照片上傳失敗，請確認 Firebase 規則已部署。"));
       };
       photo.src = String(reader.result);
     };
@@ -850,6 +884,8 @@ function MembersCard() {
         </div>
         <span className="rounded-full bg-[#edf5fa] px-3 py-1 text-xs font-semibold text-[#6c8295]">{members.length} 人</span>
       </div>
+
+      {cloudError ? <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-600">{cloudError}</p> : null}
 
       <div className="mt-6 grid grid-cols-3 gap-x-3 gap-y-6">
         {members.map((member) => (
@@ -874,7 +910,7 @@ function MembersCard() {
               />
             </label>
             <p className="mt-3 max-w-full truncate text-sm font-semibold text-[#0b3558]">{member.name}</p>
-            <button type="button" onClick={() => deleteMember(member)} className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-[#8fa2b2] transition-colors hover:text-rose-500">
+            <button type="button" onClick={() => void deleteMember(member)} className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-[#8fa2b2] transition-colors hover:text-rose-500">
               <Trash2 className="h-3 w-3" strokeWidth={1.6} />
               刪除
             </button>
