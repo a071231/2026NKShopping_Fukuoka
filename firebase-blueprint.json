@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "FukuokaTask": {
+      "title": "Fukuoka Task",
+      "description": "Task for the trip",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "maxLength": 50 },
+        "completed": { "type": "boolean" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["title", "type", "completed", "userId", "createdAt"]
+    },
+    "FukuokaInfo": {
+      "title": "Fukuoka Info",
+      "description": "Information about the trip",
+      "type": "object",
+      "properties": {
+        "flight": { "type": "string", "maxLength": 2000 },
+        "hotel": { "type": "string", "maxLength": 2000 },
+        "exchangeRate": { "type": "string", "maxLength": 100 },
+        "emergencyContacts": { "type": "string", "maxLength": 2000 },
+        "userId": { "type": "string" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["flight", "hotel", "exchangeRate", "userId", "updatedAt"]
+    },
+    "FukuokaItinerary": {
+      "title": "Fukuoka Itinerary",
+      "description": "Itinerary item",
+      "type": "object",
+      "properties": {
+        "day": { "type": "string", "maxLength": 50 },
+        "time": { "type": "string", "maxLength": 50 },
+        "activity": { "type": "string", "maxLength": 200 },
+        "type": { "type": "string", "maxLength": 50 },
+        "location": { "type": "string", "maxLength": 200 },
+        "aiGuide": { "type": "string", "maxLength": 5000 },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["day", "time", "activity", "type", "userId", "createdAt"]
+    },
+    "FukuokaExpense": {
+      "title": "Fukuoka Expense",
+      "description": "Expense for the trip",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "description": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 50 },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["amount", "description", "category", "userId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/fukuoka_tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/FukuokaTask" },
+      "description": "Stores tasks for the trip"
+    },
+    "/fukuoka_info/{infoId}": {
+      "schema": { "$ref": "#/entities/FukuokaInfo" },
+      "description": "Stores info for the trip"
+    },
+    "/fukuoka_itinerary/{itemId}": {
+      "schema": { "$ref": "#/entities/FukuokaItinerary" },
+      "description": "Stores itinerary items for the trip"
+    },
+    "/fukuoka_expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/FukuokaExpense" },
+      "description": "Stores expenses for the trip"
+    }
+  }
+}

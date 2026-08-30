@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="flowerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD1DC"/>
+      <stop offset="100%" stop-color="#89CFF0"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="512" height="512" fill="#FFFFFF"/>
+  
+  <!-- Stems -->
+  <path d="M256,420 C256,300 256,256 256,200 M256,350 C200,300 160,250 160,200 M256,330 C320,280 350,230 350,180 M210,260 C180,230 150,210 130,220 M300,250 C330,220 360,210 380,220" stroke="#bde2b5" stroke-width="8" stroke-linecap="round" fill="none" />
+  
+  <!-- Leaves (Small) -->
+  <path d="M256,350 Q230,320 256,300 Q260,330 256,350" fill="#bde2b5" />
+  <path d="M256,320 Q280,290 256,270 Q250,300 256,320" fill="#bde2b5" />
+  <path d="M210,290 Q190,260 210,250 Q220,270 210,290" fill="#bde2b5" />
+  <path d="M300,280 Q320,250 300,240 Q290,260 300,280" fill="#bde2b5" />
+
+  <!-- Flowers Group -->
+  <g fill="url(#flowerGradient)">
+    <!-- Flower 1 (Center Top) -->
+    <circle cx="256" cy="190" r="15"/><circle cx="244" cy="200" r="15"/><circle cx="268" cy="200" r="15"/><circle cx="250" cy="215" r="15"/><circle cx="262" cy="215" r="15"/>
+    <circle cx="256" cy="205" r="5" fill="#FFFFFF"/>
+    
+    <!-- Flower 2 (Left) -->
+    <circle cx="160" cy="190" r="12"/><circle cx="150" cy="198" r="12"/><circle cx="170" cy="198" r="12"/><circle cx="155" cy="210" r="12"/><circle cx="165" cy="210" r="12"/>
+    <circle cx="160" cy="202" r="4" fill="#FFFFFF"/>
+    
+    <!-- Flower 3 (Right) -->
+    <circle cx="350" cy="170" r="14"/><circle cx="338" cy="180" r="14"/><circle cx="362" cy="180" r="14"/><circle cx="344" cy="194" r="14"/><circle cx="356" cy="194" r="14"/>
+    <circle cx="350" cy="185" r="5" fill="#FFFFFF"/>
+
+    <!-- Flower 4 (Far Left) -->
+    <circle cx="130" cy="210" r="10"/><circle cx="122" cy="216" r="10"/><circle cx="138" cy="216" r="10"/><circle cx="126" cy="226" r="10"/><circle cx="134" cy="226" r="10"/>
+    <circle cx="130" cy="219" r="3" fill="#FFFFFF"/>
+
+    <!-- Flower 5 (Far Right) -->
+    <circle cx="380" cy="210" r="11"/><circle cx="371" cy="217" r="11"/><circle cx="389" cy="217" r="11"/><circle cx="375" cy="228" r="11"/><circle cx="385" cy="228" r="11"/>
+    <circle cx="380" cy="220" r="4" fill="#FFFFFF"/>
+
+    <!-- Flower 6 (Inner Left) -->
+    <circle cx="210" cy="250" r="13"/><circle cx="199" cy="258" r="13"/><circle cx="221" cy="258" r="13"/><circle cx="204" cy="271" r="13"/><circle cx="216" cy="271" r="13"/>
+    <circle cx="210" cy="262" r="4" fill="#FFFFFF"/>
+
+    <!-- Flower 7 (Inner Right) -->
+    <circle cx="300" cy="240" r="12"/><circle cx="290" cy="248" r="12"/><circle cx="310" cy="248" r="12"/><circle cx="295" cy="260" r="12"/><circle cx="305" cy="260" r="12"/>
+    <circle cx="300" cy="252" r="4" fill="#FFFFFF"/>
+    
+    <!-- Star-like petals to simulate baby's breath volume -->
+    <circle cx="256" cy="160" r="8"/><circle cx="170" cy="170" r="7"/><circle cx="330" cy="150" r="8"/>
+    <circle cx="280" cy="180" r="9"/><circle cx="230" cy="180" r="8"/><circle cx="360" cy="210" r="7"/>
+    <circle cx="150" cy="230" r="8"/><circle cx="200" cy="210" r="9"/><circle cx="320" cy="210" r="8"/>
+  </g>
+</svg>

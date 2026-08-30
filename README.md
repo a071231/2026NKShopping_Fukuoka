@@ -1,24 +1,20 @@
-# 2026NKShopping_Fukuoka
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-高級感日系福岡家庭旅遊 Web App，第一階段完成首頁 UI。
+# Run and deploy your AI Studio app
 
-## Tech Stack
+This contains everything you need to run your app locally.
 
-- Next.js 15
-- TypeScript
-- Tailwind CSS
-- shadcn/ui style components
-- Mobile First RWD
+View your app in AI Studio: https://ai.studio/apps/0d5a593f-0f02-4254-b61a-ef96f96ca696
 
-## Local Development
+## Run Locally
 
-```bash
-npm install
-npm run dev
-```
+**Prerequisites:**  Node.js
 
-Open `http://localhost:3000`.
 
-## Deploy
-
-This project is ready for Vercel. Import the folder in Vercel and use the default Next.js settings.
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
