@@ -46,9 +46,14 @@ export const weatherForecast: Array<{
 ];
 
 export const hotel = {
-  name: "The Blossom Kumamoto",
-  dates: "2026.10.03 - 2026.10.07",
-  address: "3 Chome-15-26 Kasuga, Nishi Ward, Kumamoto",
+  name: "福岡蘭多住宅飯店附樓",
+  englishName: "Randor Residential Hotel Fukuoka Annex",
+  phone: "+81925265231",
+  address: "電話：+81925265231",
+  checkIn: "2026年10月3日 星期六 15:00",
+  checkOut: "2026年10月11日 星期日 11:00",
+  dates: "2026.10.03 - 2026.10.11",
+  orderNumber: "1742593424",
   image: "/images/fukuoka-coast-hero.jpg",
 };
 
