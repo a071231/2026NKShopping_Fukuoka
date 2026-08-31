@@ -18,6 +18,7 @@ import { itinerary as initialItinerary, type ItineraryItem } from "@/data/trip";
 import { db } from "@/lib/firebase";
 
 export type TripMember = { id: string; name: string; avatar: string };
+export type CloudExpense = { id: string; title: string; amount: number; payer: string; paid?: boolean };
 export type CloudChecklistItem = { id: string; label: string; done: boolean };
 export type CloudChecklistCategory = { id: string; title: string; accent: string; items: CloudChecklistItem[] };
 
@@ -187,4 +188,85 @@ export function useCloudChecklist(memberId: string, initialCategories: CloudChec
   }
 
   return { categories, cloudError, save };
+}
+
+export function useCloudExpenses(initialExpenses: CloudExpense[]) {
+  const [expenses, setExpenses] = useState<CloudExpense[]>(initialExpenses);
+  const [cloudError, setCloudError] = useState("");
+
+  useEffect(() => {
+    const expensesQuery = query(collection(db, "fukuoka_ledger"), where("userId", "==", sharedId));
+    return onSnapshot(
+      expensesQuery,
+      (snapshot) => {
+        if (snapshot.empty) {
+          let seedExpenses = initialExpenses;
+          try {
+            const stored = window.localStorage.getItem("nk-trip-expenses");
+            const parsed = stored ? JSON.parse(stored) : null;
+            if (Array.isArray(parsed)) {
+              const valid = parsed.filter(
+                (item): item is CloudExpense =>
+                  typeof item?.id === "string" &&
+                  typeof item?.title === "string" &&
+                  typeof item?.amount === "number" &&
+                  typeof item?.payer === "string",
+              );
+              if (valid.length) seedExpenses = valid;
+            }
+          } catch {
+            // Use the built-in items if an older local value cannot be read.
+          }
+
+          void Promise.all(
+            seedExpenses.map((expense, index) =>
+              setDoc(doc(db, "fukuoka_ledger", expense.id), {
+                title: expense.title,
+                amount: expense.amount,
+                payer: expense.payer,
+                paid: Boolean(expense.paid),
+                position: index,
+                userId: sharedId,
+                createdAt: serverTimestamp(),
+              }),
+            ),
+          ).catch(() => setCloudError("帳本初始化失敗，請確認 Firebase 規則已發布。"));
+          return;
+        }
+
+        setExpenses(
+          snapshot.docs
+            .map((expenseDoc) => {
+              const data = expenseDoc.data();
+              return {
+                id: expenseDoc.id,
+                title: String(data.title ?? ""),
+                amount: Number(data.amount ?? 0),
+                payer: String(data.payer ?? ""),
+                paid: Boolean(data.paid),
+                position: Number(data.position ?? 0),
+              };
+            })
+            .sort((a, b) => a.position - b.position)
+            .map(({ position: _position, ...expense }) => expense),
+        );
+        setCloudError("");
+      },
+      () => setCloudError("旅行帳本雲端同步失敗，請確認 Firebase 規則已發布。"),
+    );
+  }, [initialExpenses]);
+
+  return {
+    expenses,
+    cloudError,
+    addExpense: (expense: Omit<CloudExpense, "id">) =>
+      addDoc(collection(db, "fukuoka_ledger"), {
+        ...expense,
+        paid: Boolean(expense.paid),
+        position: Date.now(),
+        userId: sharedId,
+        createdAt: serverTimestamp(),
+      }),
+    deleteExpense: (id: string) => deleteDoc(doc(db, "fukuoka_ledger", id)),
+  };
 }
