@@ -73,6 +73,16 @@ service cloud.firestore {
         && data.userId == 'shared_fukuoka_trip';
     }
 
+    function isValidLedgerExpense(data) {
+      return data.keys().hasAll(['title', 'amount', 'payer', 'paid', 'position', 'userId', 'createdAt'])
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+        && (data.amount is int || data.amount is float) && data.amount > 0
+        && data.payer is string && data.payer.size() > 0 && data.payer.size() <= 128
+        && data.paid is bool
+        && (data.position is int || data.position is float)
+        && data.userId == 'shared_fukuoka_trip';
+    }
+
     match /fukuoka_tasks/{taskId} {
       allow get: if isSignedIn() && existing().userId == 'shared_fukuoka_trip' && isValidId(taskId);
       allow list: if isSignedIn() && resource.data.userId == 'shared_fukuoka_trip';
@@ -210,6 +220,31 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly(['categories', 'updatedAt']);
+    }
+
+    match /fukuoka_ledger/{expenseId} {
+      allow get: if isSignedIn()
+        && isValidId(expenseId)
+        && existing().userId == 'shared_fukuoka_trip';
+      allow list: if isSignedIn() && resource.data.userId == 'shared_fukuoka_trip';
+
+      allow create: if isSignedIn()
+        && isValidId(expenseId)
+        && isValidLedgerExpense(incoming())
+        && incoming().createdAt == request.time
+        && incoming().keys().size() == 7;
+
+      allow update: if isSignedIn()
+        && isValidId(expenseId)
+        && existing().userId == 'shared_fukuoka_trip'
+        && isValidLedgerExpense(incoming())
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'amount', 'payer', 'paid', 'position']);
+
+      allow delete: if isSignedIn()
+        && isValidId(expenseId)
+        && existing().userId == 'shared_fukuoka_trip';
     }
   }
 }
