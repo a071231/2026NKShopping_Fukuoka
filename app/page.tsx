@@ -173,7 +173,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#dcecf7] text-[#082f52]">
-      <div className="mx-auto min-h-screen w-full max-w-[430px] overflow-hidden bg-[linear-gradient(180deg,#eef8ff_0%,#f9fcfe_32%,#f5faff_100%)] pb-28 shadow-[0_0_90px_rgba(8,47,82,0.22)]">
+      <div className="mx-auto min-h-screen w-full max-w-[430px] overflow-hidden bg-[linear-gradient(180deg,#eef8ff_0%,#f9fcfe_32%,#f5faff_100%)] pb-28 shadow-[0_0_90px_rgba(8,47,82,0.22)] min-[821px]:max-w-[1100px]">
         {view === "home" ? (
           <>
             <HeroHeader />
@@ -298,7 +298,7 @@ function DateRail({
 
   return (
     <div className="flex items-center gap-2">
-      <button type="button" onClick={() => selectAdjacentDay(-1)} disabled={selectedIndex <= 0} className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d7e5ef] bg-white/80 text-[#496782] shadow-sm transition hover:border-[#d1a047] hover:text-[#b78023] disabled:cursor-not-allowed disabled:opacity-30 md:flex" aria-label="前一天">
+      <button type="button" onClick={() => selectAdjacentDay(-1)} disabled={selectedIndex <= 0} className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d7e5ef] bg-white/80 text-[#496782] shadow-sm transition hover:border-[#d1a047] hover:text-[#b78023] disabled:cursor-not-allowed disabled:opacity-30 min-[821px]:flex" aria-label="前一天">
         <ChevronLeft className="h-5 w-5" />
       </button>
       <nav className="no-scrollbar flex min-w-0 flex-1 overflow-x-auto py-1">
@@ -322,7 +322,7 @@ function DateRail({
           );
         })}
       </nav>
-      <button type="button" onClick={() => selectAdjacentDay(1)} disabled={selectedIndex < 0 || selectedIndex >= tripDays.length - 1} className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d7e5ef] bg-white/80 text-[#496782] shadow-sm transition hover:border-[#d1a047] hover:text-[#b78023] disabled:cursor-not-allowed disabled:opacity-30 md:flex" aria-label="後一天">
+      <button type="button" onClick={() => selectAdjacentDay(1)} disabled={selectedIndex < 0 || selectedIndex >= tripDays.length - 1} className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#d7e5ef] bg-white/80 text-[#496782] shadow-sm transition hover:border-[#d1a047] hover:text-[#b78023] disabled:cursor-not-allowed disabled:opacity-30 min-[821px]:flex" aria-label="後一天">
         <ChevronRight className="h-5 w-5" />
       </button>
     </div>
@@ -1256,7 +1256,7 @@ function BottomNavigation({ view, setView }: { view: View; setView: (view: View)
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-[#e1ebf2] bg-white/94 px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-xl">
-      <div className="mx-auto grid max-w-[390px] grid-cols-4">
+      <div className="mx-auto grid max-w-[390px] grid-cols-4 min-[821px]:max-w-[720px]">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = view === item.id;
