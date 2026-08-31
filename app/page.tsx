@@ -69,15 +69,7 @@ const weatherIconMap: Record<WeatherIcon, typeof Sun> = {
   rain: CloudRain,
 };
 
-const initialExpenses: CloudExpense[] = [
-  { id: "e1", title: "星宇航空機票", amount: 148100, payer: "member-00", paid: true },
-  { id: "e2", title: "The Blossom Kumamoto x1晚", amount: 15383, payer: "member-00", paid: true },
-  { id: "e3", title: "月洸樹 黑川 x1晚", amount: 81503, payer: "member-00" },
-  { id: "e4", title: "由布院 玉の湯 x1晚", amount: 55941, payer: "member-mom" },
-  { id: "e5", title: "Grand Hyatt Fukuoka x3晚", amount: 123105, payer: "member-uu", paid: true },
-  { id: "e6", title: "觀光列車車票", amount: 24895, payer: "member-tuna", paid: true },
-  { id: "e7", title: "D1 午餐 魚飯時", amount: 3458, payer: "member-paipai", paid: true },
-];
+const initialExpenses: CloudExpense[] = [];
 
 const initialChecklist: CloudChecklistCategory[] = [
   {
