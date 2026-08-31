@@ -44,11 +44,10 @@ import {
 } from "lucide-react";
 
 import { hotel, tripDays, weatherForecast, type ItineraryCategory, type ItineraryItem, type WeatherIcon } from "@/data/trip";
-import { useCloudChecklist, useCloudItinerary, useCloudMembers, type CloudChecklistCategory, type TripMember } from "@/lib/cloud-data";
+import { useCloudChecklist, useCloudExpenses, useCloudItinerary, useCloudMembers, type CloudChecklistCategory, type CloudExpense, type TripMember } from "@/lib/cloud-data";
 import { cn } from "@/lib/utils";
 
 type View = "home" | "tools" | "ledger" | "checklist";
-type Expense = { id: string; title: string; amount: number; payer: string; paid?: boolean };
 
 const defaultHotelLink = "https://www.google.com/maps/search/?api=1&query=Randor+Residential+Hotel+Fukuoka+Annex";
 const defaultHotelNote = "Agoda 訂單編號：1742593424";
@@ -70,7 +69,7 @@ const weatherIconMap: Record<WeatherIcon, typeof Sun> = {
   rain: CloudRain,
 };
 
-const initialExpenses: Expense[] = [
+const initialExpenses: CloudExpense[] = [
   { id: "e1", title: "星宇航空機票", amount: 148100, payer: "member-00", paid: true },
   { id: "e2", title: "The Blossom Kumamoto x1晚", amount: 15383, payer: "member-00", paid: true },
   { id: "e3", title: "月洸樹 黑川 x1晚", amount: 81503, payer: "member-00" },
@@ -975,7 +974,7 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
 
 function LedgerView() {
   const { members, cloudError } = useCloudMembers();
-  const [expenses, setExpenses] = useStoredState("nk-trip-expenses", initialExpenses);
+  const { expenses, cloudError: ledgerCloudError, addExpense: addCloudExpense, deleteExpense } = useCloudExpenses(initialExpenses);
   const [filter, setFilter] = useState("all");
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
@@ -997,15 +996,28 @@ function LedgerView() {
     if (!members.some((member) => member.id === payer)) setPayer(members[0].id);
   }, [members, payer]);
 
-  function addExpense(event: FormEvent<HTMLFormElement>) {
+  async function addExpense(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsedAmount = Number(amount.replace(/,/g, ""));
     if (!title.trim() || !payer || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
-    setExpenses((current) => [...current, { id: crypto.randomUUID(), title: title.trim(), amount: Math.round(parsedAmount), payer }]);
-    setTitle("");
-    setAmount("");
-    setPayer(members[0]?.id ?? "");
-    setAdding(false);
+    try {
+      await addCloudExpense({ title: title.trim(), amount: Math.round(parsedAmount), payer, paid: false });
+      setTitle("");
+      setAmount("");
+      setPayer(members[0]?.id ?? "");
+      setAdding(false);
+    } catch {
+      window.alert("新增帳目失敗，請確認網路與 Firebase 規則。");
+    }
+  }
+
+  async function removeExpense(expense: CloudExpense) {
+    if (!window.confirm(`確定要刪除「${expense.title}」嗎？`)) return;
+    try {
+      await deleteExpense(expense.id);
+    } catch {
+      window.alert("刪除帳目失敗，請確認網路與 Firebase 規則。");
+    }
   }
 
   return (
@@ -1016,7 +1028,7 @@ function LedgerView() {
             <ReceiptText className="h-5 w-5 text-[#496782]" strokeWidth={1.7} />
             <h2 className="font-serif text-3xl font-semibold tracking-[0.04em] text-[#082f52]">旅行帳本</h2>
           </div>
-          <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Online</span>
+          <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Firestore 即時同步</span>
         </div>
         <div className="text-right text-xs text-[#8fa2b2]">
           <p>全部顯示</p>
@@ -1036,6 +1048,7 @@ function LedgerView() {
         </div>
       </div>
       {cloudError ? <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-600">{cloudError}</p> : null}
+      {ledgerCloudError ? <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-600">{ledgerCloudError}</p> : null}
       <div className="mt-6 overflow-hidden rounded-2xl border border-white/70 bg-white/82 shadow-[0_16px_38px_rgba(8,47,82,0.08)]">
         <div className="border-b border-[#e1ebf2] p-6">
           <p className="text-sm text-[#6c8295]">總金額（台幣）</p>
@@ -1059,7 +1072,7 @@ function LedgerView() {
             </div>
             <div className="flex items-center gap-3">
               <p className="font-mono text-sm font-semibold text-[#163f62]">${expense.amount.toLocaleString()}</p>
-              <button onClick={() => setExpenses((current) => current.filter((item) => item.id !== expense.id))} className="text-[#8fa2b2]" aria-label="刪除項目">
+              <button onClick={() => void removeExpense(expense)} className="rounded-full p-2 text-[#8fa2b2] transition-colors hover:bg-rose-50 hover:text-rose-500" aria-label={`刪除${expense.title}`}>
                 <Trash2 className="h-4 w-4" strokeWidth={1.5} />
               </button>
             </div>
