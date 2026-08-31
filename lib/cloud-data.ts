@@ -200,37 +200,8 @@ export function useCloudExpenses(initialExpenses: CloudExpense[]) {
       expensesQuery,
       (snapshot) => {
         if (snapshot.empty) {
-          let seedExpenses = initialExpenses;
-          try {
-            const stored = window.localStorage.getItem("nk-trip-expenses");
-            const parsed = stored ? JSON.parse(stored) : null;
-            if (Array.isArray(parsed)) {
-              const valid = parsed.filter(
-                (item): item is CloudExpense =>
-                  typeof item?.id === "string" &&
-                  typeof item?.title === "string" &&
-                  typeof item?.amount === "number" &&
-                  typeof item?.payer === "string",
-              );
-              if (valid.length) seedExpenses = valid;
-            }
-          } catch {
-            // Use the built-in items if an older local value cannot be read.
-          }
-
-          void Promise.all(
-            seedExpenses.map((expense, index) =>
-              setDoc(doc(db, "fukuoka_ledger", expense.id), {
-                title: expense.title,
-                amount: expense.amount,
-                payer: expense.payer,
-                paid: Boolean(expense.paid),
-                position: index,
-                userId: sharedId,
-                createdAt: serverTimestamp(),
-              }),
-            ),
-          ).catch(() => setCloudError("帳本初始化失敗，請確認 Firebase 規則已發布。"));
+          setExpenses([]);
+          setCloudError("");
           return;
         }
 
