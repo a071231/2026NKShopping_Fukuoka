@@ -3,7 +3,6 @@
 import Image from "next/image";
 
 import {
-  type ComponentType,
   type Dispatch,
   type FormEvent,
   type SetStateAction,
@@ -14,7 +13,6 @@ import {
 import {
   CalendarDays,
   Camera,
-  Car,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
@@ -27,18 +25,15 @@ import {
   GripVertical,
   Info,
   MapPin,
-  Navigation,
   PackagePlus,
   Pencil,
   Plane,
   Plus,
   Phone,
   ReceiptText,
-  ShoppingBag,
   StickyNote,
   Sun,
   Trash2,
-  Utensils,
   Users,
   WalletCards,
   X,
@@ -56,12 +51,12 @@ const heroImage = "/images/fukuoka-coast-hero.jpg";
 
 const categoryMeta: Record<
   ItineraryCategory,
-  { en: string; icon: ComponentType<{ className?: string; strokeWidth?: number }>; color: string; background: string }
+  { en: string; iconSrc: string; background: string }
 > = {
-  交通: { en: "TRANSPORT", icon: Car, color: "text-sky-700", background: "bg-sky-100" },
-  食物: { en: "FOOD", icon: Utensils, color: "text-amber-700", background: "bg-amber-100" },
-  購物: { en: "SHOPPING", icon: ShoppingBag, color: "text-rose-700", background: "bg-rose-100" },
-  景點: { en: "ACTIVITY", icon: Navigation, color: "text-emerald-700", background: "bg-emerald-100" },
+  交通: { en: "TRANSPORT", iconSrc: "/icons/category-transport.svg", background: "bg-sky-600" },
+  食物: { en: "FOOD", iconSrc: "/icons/category-food.svg", background: "bg-amber-500" },
+  購物: { en: "SHOPPING", iconSrc: "/icons/category-shopping.svg", background: "bg-rose-500" },
+  景點: { en: "ACTIVITY", iconSrc: "/icons/category-place.svg", background: "bg-emerald-600" },
 };
 
 const weatherIconMap: Record<WeatherIcon, typeof Sun> = {
@@ -747,11 +742,6 @@ function Timeline({
         <div className="ml-[70px]">
           {dayItems.map((item) => {
             const meta = categoryMeta[item.category];
-            const Icon =
-              item.category === "交通" && (item.title.includes("JX") || item.title.includes("出發"))
-                ? Plane
-                : meta.icon;
-
             return (
               <article
                 key={item.id}
@@ -796,7 +786,7 @@ function Timeline({
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <span className={cn("mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full", meta.background)}>
-                    <Icon className={cn("h-6 w-6", meta.color)} strokeWidth={1.55} aria-label={`${item.category}分類`} />
+                    <Image src={meta.iconSrc} alt={`${item.category}分類`} width={24} height={24} className="h-6 w-6 object-contain" />
                   </span>
                   <div className="flex flex-col items-center gap-2">
                     <button onClick={() => onEdit(item)} className="text-[#6c8295]" aria-label={`編輯${item.title}`}><Pencil className="h-4 w-4" /></button>
