@@ -24,6 +24,7 @@ import {
   Copy,
   ExternalLink,
   Home,
+  GripVertical,
   Info,
   MapPin,
   Navigation,
@@ -139,13 +140,14 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState(tripDays[0].date);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
   const [editDraft, setEditDraft] = useState<ItineraryItem | null>(null);
-  const { items: cloudItinerary, cloudError, addItem, updateItem, deleteItem } = useCloudItinerary();
+  const { items: cloudItinerary, cloudError, addItem, updateItem, reorderItems, deleteItem } = useCloudItinerary();
   const dayItems = useMemo(() => cloudItinerary.filter((item) => item.date === selectedDate), [cloudItinerary, selectedDate]);
 
   function addItineraryItem() {
     setEditingItem(null);
     setEditDraft({
       id: "",
+      position: Date.now(),
       date: selectedDate,
       time: "10:00",
       title: "",
@@ -176,7 +178,7 @@ export default function HomePage() {
     if (editingItem) {
       await updateItem(editingItem.id, itemValues);
     } else {
-      await addItem(itemValues);
+      await addItem({ ...itemValues, position: Date.now() });
     }
     setEditingItem(null);
     setEditDraft(null);
@@ -201,6 +203,7 @@ export default function HomePage() {
                 dayItems={dayItems}
                 selectedDate={selectedDate}
                 onEdit={editItineraryItem}
+                onReorder={(items) => void reorderItems(items)}
                 onDelete={(item) => {
                   if (window.confirm(`確定刪除「${item.title}」嗎？`)) void deleteItem(item.id);
                 }}
@@ -697,13 +700,16 @@ function Timeline({
   dayItems,
   selectedDate,
   onEdit,
+  onReorder,
   onDelete,
 }: {
   dayItems: ItineraryItem[];
   selectedDate: string;
   onEdit: (item: ItineraryItem) => void;
+  onReorder: (items: ItineraryItem[]) => void;
   onDelete: (item: ItineraryItem) => void;
 }) {
+  const [draggedId, setDraggedId] = useState<string | null>(null);
   const selectedDay = tripDays.find((day) => day.date === selectedDate);
   const weekdayLabel: Record<string, string> = {
     SUN: "週日",
@@ -749,7 +755,34 @@ function Timeline({
             return (
               <article
                 key={item.id}
-                className="relative grid min-h-[76px] grid-cols-[52px_minmax(0,1fr)_24px] items-center gap-3 border-b border-[#e3edf4] py-3 pl-6 last:border-b-0"
+                draggable
+                onDragStart={(event) => {
+                  setDraggedId(item.id);
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", item.id);
+                }}
+                onDragEnd={() => setDraggedId(null)}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const sourceId = event.dataTransfer.getData("text/plain") || draggedId;
+                  if (!sourceId || sourceId === item.id) return;
+                  const nextItems = [...dayItems];
+                  const sourceIndex = nextItems.findIndex((entry) => entry.id === sourceId);
+                  const targetIndex = nextItems.findIndex((entry) => entry.id === item.id);
+                  if (sourceIndex < 0 || targetIndex < 0) return;
+                  const [movedItem] = nextItems.splice(sourceIndex, 1);
+                  nextItems.splice(targetIndex, 0, movedItem);
+                  onReorder(nextItems);
+                  setDraggedId(null);
+                }}
+                className={cn(
+                  "relative grid min-h-[76px] cursor-grab grid-cols-[52px_minmax(0,1fr)_24px] items-center gap-3 border-b border-[#e3edf4] py-3 pl-6 transition last:border-b-0 active:cursor-grabbing",
+                  draggedId === item.id && "opacity-40",
+                )}
               >
                 <span className="absolute -left-[4px] top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border-2 border-[#d1a047] bg-[#ffffff]" />
                 <time className="self-start pt-1 font-serif text-sm text-[#163f62]">{item.time}</time>
@@ -762,6 +795,7 @@ function Timeline({
                   </p>
                 </div>
                 <div className="flex flex-col items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-[#8fa2b2]" aria-label={`拖曳排序${item.title}`} />
                   <Icon className="h-5 w-5 text-[#c8963e]" strokeWidth={1.45} />
                   <button onClick={() => onEdit(item)} className="text-[#6c8295]" aria-label={`編輯${item.title}`}><Pencil className="h-3.5 w-3.5" /></button>
                   <button onClick={() => onDelete(item)} className="text-rose-400" aria-label={`刪除${item.title}`}><Trash2 className="h-3.5 w-3.5" /></button>
