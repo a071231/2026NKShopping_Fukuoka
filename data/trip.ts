@@ -3,6 +3,7 @@ export type WeatherIcon = "sun" | "cloud" | "rain";
 
 export type ItineraryItem = {
   id: string;
+  position?: number;
   date: string;
   time: string;
   title: string;
