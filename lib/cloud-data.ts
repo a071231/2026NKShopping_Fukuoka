@@ -101,6 +101,7 @@ export function useCloudItinerary() {
           return [
             {
               id: itemDoc.id,
+              position: typeof data.position === "number" ? data.position : undefined,
               date: data.date,
               time: isOldDefaultOutboundFlight ? "14:40" : data.time,
               title: isOldDefaultOutboundFlight ? "出發 (CI128)" : data.title,
@@ -127,7 +128,14 @@ export function useCloudItinerary() {
           return;
         }
         setItems(
-          validItems.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time)),
+          validItems.sort((a, b) => {
+            const dateOrder = a.date.localeCompare(b.date);
+            if (dateOrder) return dateOrder;
+            if (a.position !== undefined || b.position !== undefined) {
+              return (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER);
+            }
+            return a.time.localeCompare(b.time);
+          }),
         );
         setCloudError("");
       },
@@ -141,6 +149,8 @@ export function useCloudItinerary() {
     addItem: (item: Omit<ItineraryItem, "id">) =>
       addDoc(collection(db, "fukuoka_itinerary"), { ...item, userId: sharedId, createdAt: serverTimestamp() }),
     updateItem: (id: string, item: Partial<Omit<ItineraryItem, "id">>) => updateDoc(doc(db, "fukuoka_itinerary", id), item),
+    reorderItems: (items: ItineraryItem[]) =>
+      Promise.all(items.map((item, position) => updateDoc(doc(db, "fukuoka_itinerary", item.id), { position }))),
     deleteItem: (id: string) => deleteDoc(doc(db, "fukuoka_itinerary", id)),
   };
 }
