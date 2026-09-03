@@ -738,7 +738,7 @@ function Timeline({
           <span className="mt-1 text-[11px]">{weekdayLabel[selectedDay?.weekday ?? ""]}</span>
         </div>
 
-        <div className="relative ml-[10%] mt-3 w-[90%]">
+        <div className="relative mt-3 w-full">
           <span className="absolute bottom-9 left-0 top-0 w-px bg-[#89a9be]" />
           {dayItems.map((item) => {
             const meta = categoryMeta[item.category];
