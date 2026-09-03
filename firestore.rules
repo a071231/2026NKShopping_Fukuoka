@@ -44,6 +44,7 @@ service cloud.firestore {
         && data.description is string && data.description.size() <= 2000
         && data.address is string && data.address.size() <= 500
         && data.url is string && data.url.size() <= 2000
+        && (data.get('position', 0) is int || data.get('position', 0) is float)
         && data.userId == 'shared_fukuoka_trip';
     }
 
@@ -145,7 +146,7 @@ service cloud.firestore {
         && isValidItinerary(incoming())
         && incoming().userId == existing().userId
         && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'time', 'title', 'category', 'description', 'address', 'url']);
+        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'time', 'title', 'category', 'description', 'address', 'url', 'position']);
         
       allow delete: if isSignedIn()
         && isValidId(itemId)
