@@ -780,7 +780,7 @@ function Timeline({
                   setDraggedId(null);
                 }}
                 className={cn(
-                  "relative grid min-h-[76px] cursor-grab grid-cols-[52px_minmax(0,1fr)_24px] items-center gap-3 border-b border-[#e3edf4] py-3 pl-6 transition last:border-b-0 active:cursor-grabbing",
+                  "relative grid min-h-[76px] cursor-grab grid-cols-[52px_minmax(0,1fr)_104px] items-center gap-2 border-b border-[#e3edf4] py-3 pl-6 transition last:border-b-0 active:cursor-grabbing",
                   draggedId === item.id && "opacity-40",
                 )}
               >
@@ -794,11 +794,13 @@ function Timeline({
                     {item.description}
                   </p>
                 </div>
-                <div className="flex flex-col items-center gap-2">
-                  <GripVertical className="h-4 w-4 text-[#8fa2b2]" aria-label={`拖曳排序${item.title}`} />
-                  <Icon className="h-5 w-5 text-[#c8963e]" strokeWidth={1.45} />
-                  <button onClick={() => onEdit(item)} className="text-[#6c8295]" aria-label={`編輯${item.title}`}><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => onDelete(item)} className="text-rose-400" aria-label={`刪除${item.title}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                <div className="flex items-center justify-end gap-2">
+                  <Icon className={cn("h-8 w-8 shrink-0", meta.color)} strokeWidth={1.55} aria-label={`${item.category}分類`} />
+                  <div className="flex flex-col items-center gap-2">
+                    <button onClick={() => onEdit(item)} className="text-[#6c8295]" aria-label={`編輯${item.title}`}><Pencil className="h-4 w-4" /></button>
+                    <button onClick={() => onDelete(item)} className="text-rose-400" aria-label={`刪除${item.title}`}><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                  <GripVertical className="h-5 w-5 shrink-0 text-[#8fa2b2]" aria-label={`拖曳排序${item.title}`} />
                 </div>
               </article>
             );
