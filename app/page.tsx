@@ -733,13 +733,13 @@ function Timeline({
   return (
     <section className="rounded-2xl border border-[#dbe8f0] bg-white/72 px-4 py-3 shadow-[0_12px_32px_rgba(8,47,82,0.07)]">
       <div className="relative">
-        <div className="absolute left-0 top-0 flex h-14 w-14 flex-col items-center justify-center rounded-full border border-[#e3d9cd] bg-[#f6fbfe] text-center text-[#496782] shadow-[0_5px_14px_rgba(8,47,82,0.05)]">
+        <div className="flex h-14 w-14 flex-col items-center justify-center rounded-full border border-[#e3d9cd] bg-[#f6fbfe] text-center text-[#496782] shadow-[0_5px_14px_rgba(8,47,82,0.05)]">
           <span className="font-serif text-sm leading-none">{dateLabel}</span>
           <span className="mt-1 text-[11px]">{weekdayLabel[selectedDay?.weekday ?? ""]}</span>
         </div>
-        <span className="absolute bottom-9 left-[70px] top-7 w-px bg-[#89a9be]" />
 
-        <div className="ml-[70px]">
+        <div className="relative ml-[10%] mt-3 w-[90%]">
+          <span className="absolute bottom-9 left-0 top-0 w-px bg-[#89a9be]" />
           {dayItems.map((item) => {
             const meta = categoryMeta[item.category];
             return (
