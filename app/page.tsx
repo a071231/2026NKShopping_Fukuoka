@@ -56,12 +56,12 @@ const heroImage = "/images/fukuoka-coast-hero.jpg";
 
 const categoryMeta: Record<
   ItineraryCategory,
-  { en: string; icon: ComponentType<{ className?: string; strokeWidth?: number }>; color: string }
+  { en: string; icon: ComponentType<{ className?: string; strokeWidth?: number }>; color: string; background: string }
 > = {
-  交通: { en: "TRANSPORT", icon: Car, color: "text-sky-700" },
-  食物: { en: "FOOD", icon: Utensils, color: "text-amber-700" },
-  購物: { en: "SHOPPING", icon: ShoppingBag, color: "text-rose-700" },
-  景點: { en: "ACTIVITY", icon: Navigation, color: "text-emerald-700" },
+  交通: { en: "TRANSPORT", icon: Car, color: "text-sky-700", background: "bg-sky-100" },
+  食物: { en: "FOOD", icon: Utensils, color: "text-amber-700", background: "bg-amber-100" },
+  購物: { en: "SHOPPING", icon: ShoppingBag, color: "text-rose-700", background: "bg-rose-100" },
+  景點: { en: "ACTIVITY", icon: Navigation, color: "text-emerald-700", background: "bg-emerald-100" },
 };
 
 const weatherIconMap: Record<WeatherIcon, typeof Sun> = {
@@ -795,7 +795,9 @@ function Timeline({
                   </p>
                 </div>
                 <div className="flex items-center justify-end gap-2">
-                  <Icon className={cn("h-8 w-8 shrink-0", meta.color)} strokeWidth={1.55} aria-label={`${item.category}分類`} />
+                  <span className={cn("mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full", meta.background)}>
+                    <Icon className={cn("h-6 w-6", meta.color)} strokeWidth={1.55} aria-label={`${item.category}分類`} />
+                  </span>
                   <div className="flex flex-col items-center gap-2">
                     <button onClick={() => onEdit(item)} className="text-[#6c8295]" aria-label={`編輯${item.title}`}><Pencil className="h-4 w-4" /></button>
                     <button onClick={() => onDelete(item)} className="text-rose-400" aria-label={`刪除${item.title}`}><Trash2 className="h-4 w-4" /></button>
