@@ -53,10 +53,10 @@ const categoryMeta: Record<
   ItineraryCategory,
   { en: string; iconSrc: string; background: string }
 > = {
-  交通: { en: "TRANSPORT", iconSrc: "/icons/category-transport.svg", background: "bg-sky-600" },
-  食物: { en: "FOOD", iconSrc: "/icons/category-food.svg", background: "bg-amber-500" },
-  購物: { en: "SHOPPING", iconSrc: "/icons/category-shopping.svg", background: "bg-rose-500" },
-  景點: { en: "ACTIVITY", iconSrc: "/icons/category-place.svg", background: "bg-emerald-600" },
+  交通: { en: "TRANSPORT", iconSrc: "/icons/category-transport.svg", background: "bg-[#b3e2ff]" },
+  食物: { en: "FOOD", iconSrc: "/icons/category-food.svg", background: "bg-[#f3d5eb]" },
+  購物: { en: "SHOPPING", iconSrc: "/icons/category-shopping.svg", background: "bg-[#d2ebc1]" },
+  景點: { en: "ACTIVITY", iconSrc: "/icons/category-place.svg", background: "bg-[#a8e2cb]" },
 };
 
 const weatherIconMap: Record<WeatherIcon, typeof Sun> = {
