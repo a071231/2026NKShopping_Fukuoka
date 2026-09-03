@@ -133,6 +133,7 @@ function useStoredState<T>(key: string, initialValue: T): [T, Dispatch<SetStateA
 export default function HomePage() {
   const [view, setView] = useState<View>("home");
   const [selectedDate, setSelectedDate] = useState(tripDays[0].date);
+  const [selectedItem, setSelectedItem] = useState<ItineraryItem | null>(null);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
   const [editDraft, setEditDraft] = useState<ItineraryItem | null>(null);
   const { items: cloudItinerary, cloudError, addItem, updateItem, reorderItems, deleteItem } = useCloudItinerary();
@@ -197,6 +198,7 @@ export default function HomePage() {
               <Timeline
                 dayItems={dayItems}
                 selectedDate={selectedDate}
+                onSelect={setSelectedItem}
                 onEdit={editItineraryItem}
                 onReorder={(items) => void reorderItems(items)}
                 onDelete={(item) => {
@@ -242,8 +244,69 @@ export default function HomePage() {
           </form>
         </div>
       ) : null}
+      {selectedItem ? (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-stone-950/45 px-4 backdrop-blur-sm"
+          onClick={() => setSelectedItem(null)}
+        >
+          <section
+            className="max-h-[88vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-[#f7fbfe] p-5 shadow-[0_-18px_48px_rgba(8,47,82,0.24)]"
+            onClick={(event) => event.stopPropagation()}
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="itinerary-detail-title"
+          >
+            <div className="flex items-start justify-between border-b border-[#dce8f0] pb-4">
+              <div className="min-w-0 pr-4">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#d1a047]">Itinerary Detail</p>
+                <h2 id="itinerary-detail-title" className="mt-1 font-serif text-2xl font-semibold text-[#082f52]">{selectedItem.title}</h2>
+              </div>
+              <button type="button" onClick={() => setSelectedItem(null)} className="rounded-full p-2 text-[#6c8295]" aria-label="關閉行程詳細資訊">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <dl className="mt-5 space-y-4 text-sm">
+              <DetailRow label="日期" value={selectedItem.date} />
+              <DetailRow label="時間" value={selectedItem.time} />
+              <DetailRow label="分類" value={selectedItem.category} />
+              <DetailRow label="行程說明" value={selectedItem.description || "未填寫"} />
+              <DetailRow label="地址" value={selectedItem.address || "未填寫"} />
+              <div>
+                <dt className="text-xs font-medium text-[#8fa2b2]">相關連結</dt>
+                <dd className="mt-1 leading-6 text-[#163f62]">
+                  {selectedItem.url ? (
+                    <a href={selectedItem.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 break-all text-[#2876a8] underline underline-offset-4">
+                      開啟相關連結 <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    </a>
+                  ) : "未填寫"}
+                </dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              onClick={() => {
+                const item = selectedItem;
+                setSelectedItem(null);
+                editItineraryItem(item);
+              }}
+              className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.1em] text-white"
+            >
+              <Pencil className="h-4 w-4" /> 編輯行程
+            </button>
+          </section>
+        </div>
+      ) : null}
       <BottomNavigation view={view} setView={setView} />
     </main>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium text-[#8fa2b2]">{label}</dt>
+      <dd className="mt-1 whitespace-pre-wrap leading-6 text-[#163f62]">{value}</dd>
+    </div>
   );
 }
 
@@ -694,12 +757,14 @@ function StayCard() {
 function Timeline({
   dayItems,
   selectedDate,
+  onSelect,
   onEdit,
   onReorder,
   onDelete,
 }: {
   dayItems: ItineraryItem[];
   selectedDate: string;
+  onSelect: (item: ItineraryItem) => void;
   onEdit: (item: ItineraryItem) => void;
   onReorder: (items: ItineraryItem[]) => void;
   onDelete: (item: ItineraryItem) => void;
@@ -746,6 +811,16 @@ function Timeline({
               <article
                 key={item.id}
                 draggable
+                role="button"
+                tabIndex={0}
+                aria-label={`查看${item.title}詳細資訊`}
+                onClick={() => onSelect(item)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelect(item);
+                  }
+                }}
                 onDragStart={(event) => {
                   setDraggedId(item.id);
                   event.dataTransfer.effectAllowed = "move";
@@ -770,7 +845,7 @@ function Timeline({
                   setDraggedId(null);
                 }}
                 className={cn(
-                  "relative grid min-h-[76px] cursor-grab grid-cols-[52px_minmax(0,1fr)_104px] items-center gap-2 border-b border-[#e3edf4] py-3 pl-6 transition last:border-b-0 active:cursor-grabbing",
+                  "relative grid min-h-[76px] cursor-pointer grid-cols-[52px_minmax(0,1fr)_104px] items-center gap-2 border-b border-[#e3edf4] py-3 pl-6 transition hover:bg-white/55 last:border-b-0 active:cursor-grabbing",
                   draggedId === item.id && "opacity-40",
                 )}
               >
@@ -789,8 +864,8 @@ function Timeline({
                     <Image src={meta.iconSrc} alt={`${item.category}分類`} width={24} height={24} className="h-6 w-6 object-contain" />
                   </span>
                   <div className="flex flex-col items-center gap-2">
-                    <button onClick={() => onEdit(item)} className="text-[#6c8295]" aria-label={`編輯${item.title}`}><Pencil className="h-4 w-4" /></button>
-                    <button onClick={() => onDelete(item)} className="text-rose-400" aria-label={`刪除${item.title}`}><Trash2 className="h-4 w-4" /></button>
+                    <button onClick={(event) => { event.stopPropagation(); onEdit(item); }} className="text-[#6c8295]" aria-label={`編輯${item.title}`}><Pencil className="h-4 w-4" /></button>
+                    <button onClick={(event) => { event.stopPropagation(); onDelete(item); }} className="text-rose-400" aria-label={`刪除${item.title}`}><Trash2 className="h-4 w-4" /></button>
                   </div>
                   <GripVertical className="h-5 w-5 shrink-0 text-[#8fa2b2]" aria-label={`拖曳排序${item.title}`} />
                 </div>
