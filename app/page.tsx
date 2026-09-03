@@ -246,11 +246,11 @@ export default function HomePage() {
       ) : null}
       {selectedItem ? (
         <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-stone-950/45 px-4 backdrop-blur-sm"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-stone-950/45 px-4 py-6 backdrop-blur-sm"
           onClick={() => setSelectedItem(null)}
         >
           <section
-            className="max-h-[88vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-[#f7fbfe] p-5 shadow-[0_-18px_48px_rgba(8,47,82,0.24)]"
+            className="max-h-[88vh] w-full max-w-[430px] overflow-y-auto rounded-3xl bg-[#f7fbfe] p-5 shadow-[0_18px_48px_rgba(8,47,82,0.24)]"
             onClick={(event) => event.stopPropagation()}
             aria-modal="true"
             role="dialog"
