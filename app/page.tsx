@@ -142,13 +142,18 @@ export default function HomePage() {
   const { items: cloudItinerary, cloudError, addItem, updateItem, deleteItem } = useCloudItinerary();
   const dayItems = useMemo(() => cloudItinerary.filter((item) => item.date === selectedDate), [cloudItinerary, selectedDate]);
 
-  async function addItineraryItem() {
-    const time = window.prompt("請輸入時間（例如 10:30）", "10:00")?.trim();
-    if (!time) return;
-    const title = window.prompt("請輸入行程名稱")?.trim();
-    if (!title) return;
-    const description = window.prompt("請輸入行程說明", "")?.trim() ?? "";
-    await addItem({ date: selectedDate, time, title, category: "景點", description, address: "", url: "" });
+  function addItineraryItem() {
+    setEditingItem(null);
+    setEditDraft({
+      id: "",
+      date: selectedDate,
+      time: "10:00",
+      title: "",
+      category: "景點",
+      description: "",
+      address: "",
+      url: "",
+    });
   }
 
   function editItineraryItem(item: ItineraryItem) {
@@ -158,15 +163,21 @@ export default function HomePage() {
 
   async function saveItineraryItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editingItem || !editDraft?.time.trim() || !editDraft.title.trim()) return;
-    await updateItem(editingItem.id, {
+    if (!editDraft?.time.trim() || !editDraft.title.trim()) return;
+    const itemValues = {
+      date: editDraft.date,
       time: editDraft.time.trim(),
       title: editDraft.title.trim(),
       description: editDraft.description.trim(),
       category: editDraft.category,
       address: editDraft.address.trim(),
       url: editDraft.url.trim(),
-    });
+    };
+    if (editingItem) {
+      await updateItem(editingItem.id, itemValues);
+    } else {
+      await addItem(itemValues);
+    }
     setEditingItem(null);
     setEditDraft(null);
   }
@@ -183,7 +194,7 @@ export default function HomePage() {
               <SectionHeading title="每日行程" />
               <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} view={view} setView={setView} />
               {cloudError ? <p className="rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-600">{cloudError}</p> : null}
-              <button onClick={() => void addItineraryItem()} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] px-4 py-3 text-sm font-semibold text-white shadow-sm">
+              <button onClick={addItineraryItem} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] px-4 py-3 text-sm font-semibold text-white shadow-sm">
                 <Plus className="h-4 w-4" /> 新增這天的行程
               </button>
               <Timeline
@@ -203,13 +214,13 @@ export default function HomePage() {
           </>
         )}
       </div>
-      {editingItem && editDraft ? (
+      {editDraft ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-stone-950/45 px-4 backdrop-blur-sm">
           <form onSubmit={saveItineraryItem} className="max-h-[88vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-[#f7fbfe] p-5 shadow-[0_-18px_48px_rgba(8,47,82,0.24)]">
             <div className="flex items-center justify-between border-b border-[#dce8f0] pb-4">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.25em] text-[#d1a047]">Itinerary</p>
-                <h2 className="mt-1 font-serif text-2xl font-semibold text-[#082f52]">編輯行程</h2>
+                <h2 className="mt-1 font-serif text-2xl font-semibold text-[#082f52]">{editingItem ? "編輯行程" : "新增行程"}</h2>
               </div>
               <button type="button" onClick={() => { setEditingItem(null); setEditDraft(null); }} className="rounded-full p-2 text-[#6c8295]" aria-label="關閉編輯行程">
                 <X className="h-5 w-5" />
@@ -229,7 +240,7 @@ export default function HomePage() {
             <input value={editDraft.address} onChange={(event) => setEditDraft({ ...editDraft, address: event.target.value })} className="mt-2 w-full rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 text-sm text-[#163f62] outline-none focus:border-[#d1a047]" />
             <label className="mt-4 block text-xs font-medium text-[#6c8295]">相關連結（選填）</label>
             <input value={editDraft.url} onChange={(event) => setEditDraft({ ...editDraft, url: event.target.value })} inputMode="url" className="mt-2 w-full rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 text-sm text-[#163f62] outline-none focus:border-[#d1a047]" />
-            <button type="submit" className="mt-6 h-12 w-full rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.14em] text-white">儲存修改</button>
+            <button type="submit" className="mt-6 h-12 w-full rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.14em] text-white">{editingItem ? "儲存修改" : "新增行程"}</button>
           </form>
         </div>
       ) : null}
