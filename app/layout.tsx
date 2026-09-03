@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   title: "北高購物團 | 福岡旅行 2026",
   description: "2026NKShopping_Fukuoka family travel app",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icons/app-clover-ocean.png",
+    apple: "/icons/app-clover-ocean.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

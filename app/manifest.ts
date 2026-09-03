@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#eef8ff",
     theme_color: "#8cc63f",
     icons: [
-      { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      { src: "/icons/app-clover-ocean.png", sizes: "1254x1254", type: "image/png", purpose: "any" },
     ],
   };
 }
