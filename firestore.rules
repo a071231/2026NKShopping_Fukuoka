@@ -2,250 +2,50 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 0. Global Safety Net
+    function isEditor() {
+      return request.auth != null
+        && (request.auth.token.email == 'nks00@nks-fukuoka.app'
+          || request.auth.token.email == 'nkstaco@nks-fukuoka.app'
+          || request.auth.token.email == 'nkstuna@nks-fukuoka.app');
+    }
+
+    match /fukuoka_tasks/{document=**} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /fukuoka_info/{document=**} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /fukuoka_itinerary/{document=**} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /fukuoka_expenses/{document=**} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /fukuoka_members/{document=**} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /fukuoka_checklists/{document=**} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /fukuoka_ledger/{document=**} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
     match /{document=**} {
       allow read, write: if false;
-    }
-
-    // Primitives
-    function isSignedIn() { return true; }
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
-    
-    // Validation: Fukuoka Task
-    function isValidTask(data) {
-      return data.keys().hasAll(['title', 'type', 'userId', 'createdAt', 'completed'])
-        && data.title is string && data.title.size() > 0 && data.title.size() <= 100
-        && data.type is string && data.type.size() > 0 && data.type.size() <= 50
-        && data.userId == 'shared_fukuoka_trip'
-        && data.completed is bool;
-    }
-
-    // Validation: Fukuoka Info
-    function isValidFukuokaInfo(data) {
-      return data.keys().hasAll(['flight', 'hotel', 'exchangeRate', 'userId', 'updatedAt'])
-        && data.flight is string && data.flight.size() <= 2000
-        && data.hotel is string && data.hotel.size() <= 2000
-        && data.exchangeRate is string && data.exchangeRate.size() <= 100
-        && (data.get('emergencyContacts', '') is string && data.get('emergencyContacts', '').size() <= 2000)
-        && (data.get('sheetUrl', '') is string && data.get('sheetUrl', '').size() <= 2000)
-        && (data.get('flightNotes', '') is string && data.get('flightNotes', '').size() <= 5000)
-        && data.userId == 'shared_fukuoka_trip';
-    }
-    
-    // Validation: Fukuoka Itinerary
-    function isValidItinerary(data) {
-      return data.keys().hasAll(['date', 'time', 'title', 'category', 'description', 'address', 'url', 'userId', 'createdAt'])
-        && data.date is string && data.date.size() <= 20
-        && data.time is string && data.time.size() <= 50
-        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
-        && data.category is string && data.category.size() <= 20
-        && data.description is string && data.description.size() <= 2000
-        && data.address is string && data.address.size() <= 500
-        && data.url is string && data.url.size() <= 2000
-        && (data.get('position', 0) is int || data.get('position', 0) is float)
-        && data.userId == 'shared_fukuoka_trip';
-    }
-
-    // Validation: Fukuoka Expense
-    function isValidExpense(data) {
-      return data.keys().hasAll(['amount', 'description', 'category', 'userId', 'createdAt'])
-        && (data.amount is int || data.amount is float)
-        && data.amount >= 0
-        && data.description is string && data.description.size() <= 200
-        && data.category is string && data.category.size() <= 50
-        && (data.get('payer', '') is string && data.get('payer', '').size() <= 20)
-        && (data.get('status', '') is string && data.get('status', '').size() <= 20)
-        && data.userId == 'shared_fukuoka_trip';
-    }
-
-    function isValidMember(data) {
-      return data.keys().hasAll(['name', 'avatar', 'userId', 'createdAt'])
-        && data.name is string && data.name.size() > 0 && data.name.size() <= 20
-        && data.avatar is string && data.avatar.size() <= 250000
-        && data.userId == 'shared_fukuoka_trip';
-    }
-
-    function isValidChecklist(data) {
-      return data.keys().hasAll(['memberId', 'categories', 'userId', 'createdAt', 'updatedAt'])
-        && data.memberId is string && isValidId(data.memberId)
-        && data.categories is list && data.categories.size() <= 20
-        && data.userId == 'shared_fukuoka_trip';
-    }
-
-    function isValidLedgerExpense(data) {
-      return data.keys().hasAll(['title', 'amount', 'payer', 'paid', 'position', 'userId', 'createdAt'])
-        && data.title is string && data.title.size() > 0 && data.title.size() <= 200
-        && (data.amount is int || data.amount is float) && data.amount > 0
-        && data.payer is string && data.payer.size() > 0 && data.payer.size() <= 128
-        && data.paid is bool
-        && (data.position is int || data.position is float)
-        && data.userId == 'shared_fukuoka_trip';
-    }
-
-    match /fukuoka_tasks/{taskId} {
-      allow get: if isSignedIn() && existing().userId == 'shared_fukuoka_trip' && isValidId(taskId);
-      allow list: if isSignedIn() && resource.data.userId == 'shared_fukuoka_trip';
-      
-      allow create: if isSignedIn() 
-        && isValidId(taskId)
-        && isValidTask(incoming())
-        && incoming().createdAt == request.time
-        && incoming().keys().size() <= 5;
-        
-      allow update: if isSignedIn()
-        && isValidId(taskId)
-        && existing().userId == 'shared_fukuoka_trip'
-        && isValidTask(incoming())
-        && incoming().userId == existing().userId
-        && incoming().createdAt == existing().createdAt
-        && (
-           incoming().diff(existing()).affectedKeys().hasOnly(['completed'])
-           ||
-           incoming().diff(existing()).affectedKeys().hasOnly(['title', 'type'])
-        );
-        
-      allow delete: if isSignedIn()
-        && isValidId(taskId)
-        && existing().userId == 'shared_fukuoka_trip';
-    }
-
-    match /fukuoka_info/{infoId} {
-      allow get: if isSignedIn() && infoId == 'shared_fukuoka_trip' && (resource == null || existing().userId == 'shared_fukuoka_trip');
-      allow list: if isSignedIn() && resource.data.userId == 'shared_fukuoka_trip';
-      
-      allow create: if isSignedIn() 
-        && isValidId(infoId)
-        && isValidFukuokaInfo(incoming())
-        && incoming().updatedAt == request.time
-        && infoId == 'shared_fukuoka_trip'
-        && incoming().keys().size() <= 8;
-        
-      allow update: if isSignedIn()
-        && isValidId(infoId)
-        && existing().userId == 'shared_fukuoka_trip'
-        && isValidFukuokaInfo(incoming())
-        && incoming().userId == existing().userId
-        && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly(['flight', 'hotel', 'exchangeRate', 'emergencyContacts', 'sheetUrl', 'flightNotes', 'updatedAt']);
-    }
-
-    match /fukuoka_itinerary/{itemId} {
-      allow get: if isSignedIn() && existing().userId == 'shared_fukuoka_trip' && isValidId(itemId);
-      allow list: if isSignedIn() && resource.data.userId == 'shared_fukuoka_trip';
-      
-      allow create: if isSignedIn() 
-        && isValidId(itemId)
-        && isValidItinerary(incoming())
-        && incoming().createdAt == request.time;
-        
-      allow update: if isSignedIn()
-        && isValidId(itemId)
-        && existing().userId == 'shared_fukuoka_trip'
-        && isValidItinerary(incoming())
-        && incoming().userId == existing().userId
-        && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['date', 'time', 'title', 'category', 'description', 'address', 'url', 'position']);
-        
-      allow delete: if isSignedIn()
-        && isValidId(itemId)
-        && existing().userId == 'shared_fukuoka_trip';
-    }
-
-    match /fukuoka_expenses/{expenseId} {
-      allow get: if isSignedIn() && existing().userId == 'shared_fukuoka_trip' && isValidId(expenseId);
-      allow list: if isSignedIn() && resource.data.userId == 'shared_fukuoka_trip';
-      
-      allow create: if isSignedIn() 
-        && isValidId(expenseId)
-        && isValidExpense(incoming())
-        && incoming().createdAt == request.time
-        && incoming().keys().size() <= 7;
-        
-      allow update: if isSignedIn()
-        && isValidId(expenseId)
-        && existing().userId == 'shared_fukuoka_trip'
-        && isValidExpense(incoming())
-        && incoming().userId == existing().userId
-        && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['amount', 'description', 'category', 'payer', 'status']);
-        
-      allow delete: if isSignedIn()
-        && isValidId(expenseId)
-        && existing().userId == 'shared_fukuoka_trip';
-    }
-
-    match /fukuoka_members/{memberId} {
-      allow get: if isSignedIn() && existing().userId == 'shared_fukuoka_trip' && isValidId(memberId);
-      allow list: if isSignedIn() && resource.data.userId == 'shared_fukuoka_trip';
-
-      allow create: if isSignedIn()
-        && isValidId(memberId)
-        && isValidMember(incoming())
-        && incoming().createdAt == request.time
-        && incoming().keys().size() == 4;
-
-      allow update: if isSignedIn()
-        && isValidId(memberId)
-        && existing().userId == 'shared_fukuoka_trip'
-        && isValidMember(incoming())
-        && incoming().userId == existing().userId
-        && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'avatar']);
-
-      allow delete: if isSignedIn()
-        && isValidId(memberId)
-        && existing().userId == 'shared_fukuoka_trip';
-    }
-
-    match /fukuoka_checklists/{memberId} {
-      allow get: if isSignedIn()
-        && isValidId(memberId)
-        && (resource == null || existing().userId == 'shared_fukuoka_trip');
-
-      allow create: if isSignedIn()
-        && isValidId(memberId)
-        && isValidChecklist(incoming())
-        && incoming().memberId == memberId
-        && incoming().createdAt == request.time
-        && incoming().updatedAt == request.time
-        && incoming().keys().size() == 5;
-
-      allow update: if isSignedIn()
-        && isValidId(memberId)
-        && existing().userId == 'shared_fukuoka_trip'
-        && isValidChecklist(incoming())
-        && incoming().memberId == existing().memberId
-        && incoming().userId == existing().userId
-        && incoming().createdAt == existing().createdAt
-        && incoming().updatedAt == request.time
-        && incoming().diff(existing()).affectedKeys().hasOnly(['categories', 'updatedAt']);
-    }
-
-    match /fukuoka_ledger/{expenseId} {
-      allow get: if isSignedIn()
-        && isValidId(expenseId)
-        && existing().userId == 'shared_fukuoka_trip';
-      allow list: if isSignedIn() && resource.data.userId == 'shared_fukuoka_trip';
-
-      allow create: if isSignedIn()
-        && isValidId(expenseId)
-        && isValidLedgerExpense(incoming())
-        && incoming().createdAt == request.time
-        && incoming().keys().size() == 7;
-
-      allow update: if isSignedIn()
-        && isValidId(expenseId)
-        && existing().userId == 'shared_fukuoka_trip'
-        && isValidLedgerExpense(incoming())
-        && incoming().userId == existing().userId
-        && incoming().createdAt == existing().createdAt
-        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'amount', 'payer', 'paid', 'position']);
-
-      allow delete: if isSignedIn()
-        && isValidId(expenseId)
-        && existing().userId == 'shared_fukuoka_trip';
     }
   }
 }
