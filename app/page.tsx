@@ -24,6 +24,8 @@ import {
   Home,
   GripVertical,
   Info,
+  LogIn,
+  LogOut,
   MapPin,
   PackagePlus,
   Pencil,
@@ -41,6 +43,7 @@ import {
 
 import { hotel, tripDays, weatherForecast, type ItineraryCategory, type ItineraryItem, type WeatherIcon } from "@/data/trip";
 import { useCloudChecklist, useCloudExpenses, useCloudItinerary, useCloudMembers, type CloudChecklistCategory, type CloudExpense, type TripMember } from "@/lib/cloud-data";
+import { useEditorAuth } from "@/lib/editor-auth";
 import { cn } from "@/lib/utils";
 
 type View = "home" | "tools" | "ledger" | "checklist";
@@ -131,6 +134,7 @@ function useStoredState<T>(key: string, initialValue: T): [T, Dispatch<SetStateA
 }
 
 export default function HomePage() {
+  const { authReady, canEdit, username, login, logout } = useEditorAuth();
   const [view, setView] = useState<View>("home");
   const [selectedDate, setSelectedDate] = useState(tripDays[0].date);
   const [selectedItem, setSelectedItem] = useState<ItineraryItem | null>(null);
@@ -183,21 +187,25 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#dcecf7] text-[#082f52]">
       <div className="mx-auto min-h-screen w-full max-w-[430px] overflow-hidden bg-[linear-gradient(180deg,#eef8ff_0%,#f9fcfe_32%,#f5faff_100%)] pb-28 shadow-[0_0_90px_rgba(8,47,82,0.22)] min-[821px]:max-w-[1100px]">
+        <AuthControl authReady={authReady} canEdit={canEdit} username={username} onLogin={login} onLogout={logout} />
         {view === "home" ? (
           <>
             <HeroHeader />
             <div className="-mt-14 space-y-5 px-5">
               <WeatherCard />
-              <StayCard />
+              <StayCard canEdit={canEdit} />
               <SectionHeading title="每日行程" />
               <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} view={view} setView={setView} />
               {cloudError ? <p className="rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-600">{cloudError}</p> : null}
-              <button onClick={addItineraryItem} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] px-4 py-3 text-sm font-semibold text-white shadow-sm">
-                <Plus className="h-4 w-4" /> 新增這天的行程
-              </button>
+              {canEdit ? (
+                <button onClick={addItineraryItem} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] px-4 py-3 text-sm font-semibold text-white shadow-sm">
+                  <Plus className="h-4 w-4" /> 新增這天的行程
+                </button>
+              ) : <p className="rounded-full border border-[#d7e5ef] bg-white/70 px-4 py-3 text-center text-xs text-[#6c8295]">瀏覽模式 · 登入後可編輯</p>}
               <Timeline
                 dayItems={dayItems}
                 selectedDate={selectedDate}
+                canEdit={canEdit}
                 onSelect={setSelectedItem}
                 onEdit={editItineraryItem}
                 onReorder={(items) => void reorderItems(items)}
@@ -210,7 +218,7 @@ export default function HomePage() {
         ) : (
           <>
             <CompactHeader />
-            {view === "tools" ? <ToolsView /> : view === "ledger" ? <LedgerView /> : <ChecklistView />}
+            {view === "tools" ? <ToolsView canEdit={canEdit} /> : view === "ledger" ? <LedgerView canEdit={canEdit} /> : <ChecklistView canEdit={canEdit} />}
           </>
         )}
       </div>
@@ -282,7 +290,7 @@ export default function HomePage() {
                 </dd>
               </div>
             </dl>
-            <button
+            {canEdit ? <button
               type="button"
               onClick={() => {
                 const item = selectedItem;
@@ -292,12 +300,73 @@ export default function HomePage() {
               className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.1em] text-white"
             >
               <Pencil className="h-4 w-4" /> 編輯行程
-            </button>
+            </button> : null}
           </section>
         </div>
       ) : null}
       <BottomNavigation view={view} setView={setView} />
     </main>
+  );
+}
+
+function AuthControl({ authReady, canEdit, username, onLogin, onLogout }: {
+  authReady: boolean;
+  canEdit: boolean;
+  username: string;
+  onLogin: (username: string, password: string) => Promise<void>;
+  onLogout: () => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [account, setAccount] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    try {
+      await onLogin(account, password);
+      setPassword("");
+      setOpen(false);
+    } catch {
+      setError("帳號或密碼錯誤");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="fixed right-4 top-4 z-30">
+        {canEdit ? (
+          <button onClick={() => void onLogout()} className="flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-3 py-2 text-xs font-semibold text-[#496782] shadow-md backdrop-blur" aria-label="登出編輯模式">
+            <LogOut className="h-4 w-4" /> {username} · 登出
+          </button>
+        ) : (
+          <button onClick={() => setOpen(true)} disabled={!authReady} className="flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2 text-xs font-semibold text-[#0a3d66] shadow-md backdrop-blur disabled:opacity-60">
+            <LogIn className="h-4 w-4" /> 登入編輯
+          </button>
+        )}
+      </div>
+      {open ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/45 px-5 backdrop-blur-sm" onClick={() => setOpen(false)}>
+          <form onSubmit={submit} onClick={(event) => event.stopPropagation()} className="w-full max-w-sm rounded-3xl bg-[#f7fbfe] p-6 shadow-[0_22px_60px_rgba(8,47,82,0.28)]">
+            <div className="flex items-center justify-between">
+              <div><p className="text-[10px] uppercase tracking-[0.24em] text-[#d1a047]">Editor Login</p><h2 className="mt-1 font-serif text-2xl font-semibold text-[#082f52]">登入編輯</h2></div>
+              <button type="button" onClick={() => setOpen(false)} className="p-2 text-[#6c8295]" aria-label="關閉登入"><X className="h-5 w-5" /></button>
+            </div>
+            <label className="mt-6 block text-xs text-[#6c8295]">帳號</label>
+            <input value={account} onChange={(event) => setAccount(event.target.value)} autoComplete="username" className="mt-2 w-full rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 outline-none focus:border-[#d1a047]" />
+            <label className="mt-4 block text-xs text-[#6c8295]">密碼</label>
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className="mt-2 w-full rounded-xl border border-[#d7e5ef] bg-white px-4 py-3 outline-none focus:border-[#d1a047]" />
+            {error ? <p className="mt-3 text-xs text-rose-500">{error}</p> : null}
+            <button type="submit" disabled={submitting} className="mt-6 h-12 w-full rounded-full bg-[#0a3d66] font-semibold text-white disabled:opacity-60">{submitting ? "登入中…" : "登入"}</button>
+          </form>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -512,7 +581,7 @@ function WeatherCard() {
   );
 }
 
-function StayCard() {
+function StayCard({ canEdit }: { canEdit: boolean }) {
   const [hotelLink, setHotelLink] = useStoredState("nk-trip-hotel-link-v2", defaultHotelLink);
   const [draftLink, setDraftLink] = useState(hotelLink);
   const [editingLink, setEditingLink] = useState(false);
@@ -528,7 +597,7 @@ function StayCard() {
   }, [editingLink, hotelLink]);
 
   async function copyStayInfo() {
-    await navigator.clipboard.writeText(["住宿資訊", `${hotel.name} (${hotel.englishName})`, `電話：${hotel.phone}`, `入住：${hotel.checkIn}`, `退房：${hotel.checkOut}`, `Agoda 訂單編號：${hotel.orderNumber}`, hotelLink].join("\n"));
+    await navigator.clipboard.writeText(["住宿資訊", `${hotel.name} (${hotel.englishName})`, `電話：${hotel.phone}`, `入住：${hotel.checkIn}`, `退房：${hotel.checkOut}`, ...(canEdit ? [`Agoda 訂單編號：${hotel.orderNumber}`] : []), hotelLink].join("\n"));
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
@@ -580,7 +649,7 @@ function StayCard() {
         <div className="mb-3 flex items-center justify-between">
           <p className="font-serif text-sm tracking-[0.08em] text-[#496782]">住宿資訊</p>
           <div className="flex items-center gap-3 text-[#6c8295]">
-            <button
+            {canEdit ? <button
               onClick={(event) => {
                 event.stopPropagation();
                 setEditingLink(true);
@@ -588,7 +657,7 @@ function StayCard() {
               aria-label="編輯住宿連結"
             >
               <Pencil className="h-4 w-4" strokeWidth={1.5} />
-            </button>
+            </button> : null}
             <button
               onClick={(event) => {
                 event.stopPropagation();
@@ -686,7 +755,7 @@ function StayCard() {
               </button>
             </div>
             <div className="px-5 py-5">
-              {notesEditing ? (
+              {notesEditing && canEdit ? (
                 <form onSubmit={saveNotes}>
                   <textarea
                     value={draftNoteText}
@@ -711,9 +780,9 @@ function StayCard() {
               ) : (
                 <>
                   <div className="border-l-2 border-[#d1a047] pl-4">
-                    <p className="whitespace-pre-wrap text-sm leading-8 text-[#163f62]">{noteText}</p>
+                    <p className="whitespace-pre-wrap text-sm leading-8 text-[#163f62]">{canEdit ? noteText : "登入後可查看私人訂房備註。"}</p>
                   </div>
-                  <button
+                  {canEdit ? <button
                     onClick={() => {
                       setDraftNoteText(noteText);
                       setNotesEditing(true);
@@ -722,7 +791,7 @@ function StayCard() {
                   >
                     <Pencil className="h-4 w-4" strokeWidth={1.6} />
                     編輯
-                  </button>
+                  </button> : null}
                 </>
               )}
               {noteImages.length > 0 ? (
@@ -730,7 +799,7 @@ function StayCard() {
                   {noteImages.map((image, index) => (
                     <div key={`${image}-${index}`} className="relative overflow-hidden rounded-2xl border border-[#d8e6ef] bg-white">
                       <img src={image} alt={`住宿備註圖片 ${index + 1}`} className="h-auto w-full" />
-                      {notesEditing ? (
+                      {notesEditing && canEdit ? (
                         <button
                           type="button"
                           onClick={() => setNoteImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}
@@ -757,6 +826,7 @@ function StayCard() {
 function Timeline({
   dayItems,
   selectedDate,
+  canEdit,
   onSelect,
   onEdit,
   onReorder,
@@ -764,6 +834,7 @@ function Timeline({
 }: {
   dayItems: ItineraryItem[];
   selectedDate: string;
+  canEdit: boolean;
   onSelect: (item: ItineraryItem) => void;
   onEdit: (item: ItineraryItem) => void;
   onReorder: (items: ItineraryItem[]) => void;
@@ -810,7 +881,7 @@ function Timeline({
             return (
               <article
                 key={item.id}
-                draggable
+                draggable={canEdit}
                 role="button"
                 tabIndex={0}
                 aria-label={`查看${item.title}詳細資訊`}
@@ -822,6 +893,7 @@ function Timeline({
                   }
                 }}
                 onDragStart={(event) => {
+                  if (!canEdit) return;
                   setDraggedId(item.id);
                   event.dataTransfer.effectAllowed = "move";
                   event.dataTransfer.setData("text/plain", item.id);
@@ -832,6 +904,7 @@ function Timeline({
                   event.dataTransfer.dropEffect = "move";
                 }}
                 onDrop={(event) => {
+                  if (!canEdit) return;
                   event.preventDefault();
                   const sourceId = event.dataTransfer.getData("text/plain") || draggedId;
                   if (!sourceId || sourceId === item.id) return;
@@ -845,7 +918,7 @@ function Timeline({
                   setDraggedId(null);
                 }}
                 className={cn(
-                  "relative grid min-h-[76px] cursor-pointer grid-cols-[52px_minmax(0,1fr)_104px] items-center gap-2 border-b border-[#e3edf4] py-3 pl-6 transition hover:bg-white/55 last:border-b-0 active:cursor-grabbing",
+                  cn("relative grid min-h-[76px] cursor-pointer items-center gap-2 border-b border-[#e3edf4] py-3 pl-6 transition hover:bg-white/55 last:border-b-0", canEdit ? "grid-cols-[52px_minmax(0,1fr)_104px] active:cursor-grabbing" : "grid-cols-[52px_minmax(0,1fr)_52px]"),
                   draggedId === item.id && "opacity-40",
                 )}
               >
@@ -863,11 +936,11 @@ function Timeline({
                   <span className={cn("mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full", meta.background)}>
                     <Image src={meta.iconSrc} alt={`${item.category}分類`} width={24} height={24} className="h-6 w-6 object-contain" />
                   </span>
-                  <div className="flex flex-col items-center gap-2">
+                  {canEdit ? <div className="flex flex-col items-center gap-2">
                     <button onClick={(event) => { event.stopPropagation(); onEdit(item); }} className="text-[#6c8295]" aria-label={`編輯${item.title}`}><Pencil className="h-4 w-4" /></button>
                     <button onClick={(event) => { event.stopPropagation(); onDelete(item); }} className="text-rose-400" aria-label={`刪除${item.title}`}><Trash2 className="h-4 w-4" /></button>
-                  </div>
-                  <GripVertical className="h-5 w-5 shrink-0 text-[#8fa2b2]" aria-label={`拖曳排序${item.title}`} />
+                  </div> : null}
+                  {canEdit ? <GripVertical className="h-5 w-5 shrink-0 text-[#8fa2b2]" aria-label={`拖曳排序${item.title}`} /> : null}
                 </div>
               </article>
             );
@@ -878,7 +951,7 @@ function Timeline({
   );
 }
 
-function ToolsView() {
+function ToolsView({ canEdit }: { canEdit: boolean }) {
   const flightTickets = [
     { id: "flight-out", label: "去程航班", date: "03 Oct 2026", from: "TPE", fromName: "桃園", fromTerminal: "2", to: "FUK", toName: "福岡", toTerminal: "I", depart: "14:40", arrive: "18:05", airline: "中華航空", flightNo: "CI128" },
     { id: "flight-back", label: "回程航班", date: "11 Oct 2026", from: "FUK", fromName: "福岡", fromTerminal: "I", to: "TPE", toName: "桃園", toTerminal: "2", depart: "11:00", arrive: "12:30", airline: "中華航空", flightNo: "CI111" },
@@ -887,7 +960,7 @@ function ToolsView() {
   return (
     <section className="px-5 pt-7">
       <p className="text-sm tracking-[0.08em] text-[#6b8397]">旅行重要資訊</p>
-      <MembersCard />
+      <MembersCard canEdit={canEdit} />
 
       <section className="mt-8">
         <div className="mb-4 flex items-center justify-between">
@@ -921,7 +994,7 @@ function ToolsView() {
   );
 }
 
-function MembersCard() {
+function MembersCard({ canEdit }: { canEdit: boolean }) {
   const { members, cloudError, addMember: addCloudMember, deleteMember: deleteCloudMember, updateAvatar: updateCloudAvatar } = useCloudMembers();
   const [newMemberName, setNewMemberName] = useState("");
 
@@ -988,16 +1061,16 @@ function MembersCard() {
       <div className="mt-6 grid grid-cols-3 gap-x-3 gap-y-6">
         {members.map((member) => (
           <div key={member.id} className="group flex min-w-0 flex-col items-center text-center">
-            <label className="relative h-20 w-20 cursor-pointer overflow-hidden rounded-full border-2 border-white bg-[#e8f3f9] shadow-[0_8px_22px_rgba(8,47,82,0.14)] ring-1 ring-[#d4e4ee]">
+            <label className={cn("relative h-20 w-20 overflow-hidden rounded-full border-2 border-white bg-[#e8f3f9] shadow-[0_8px_22px_rgba(8,47,82,0.14)] ring-1 ring-[#d4e4ee]", canEdit && "cursor-pointer")}>
               {member.avatar ? (
                 <Image src={member.avatar} alt={`${member.name}的大頭貼`} width={80} height={80} unoptimized className="h-full w-full object-cover" />
               ) : (
                 <span className="flex h-full w-full items-center justify-center font-serif text-xl font-semibold text-[#2f82a5]">{member.name.slice(0, 2)}</span>
               )}
-              <span className="absolute inset-0 flex items-center justify-center bg-[#062d50]/45 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+              {canEdit ? <span className="absolute inset-0 flex items-center justify-center bg-[#062d50]/45 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                 <Camera className="h-5 w-5" strokeWidth={1.8} />
-              </span>
-              <input
+              </span> : null}
+              {canEdit ? <input
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -1005,18 +1078,18 @@ function MembersCard() {
                   updateAvatar(member.id, event.target.files);
                   event.currentTarget.value = "";
                 }}
-              />
+              /> : null}
             </label>
             <p className="mt-3 max-w-full truncate text-sm font-semibold text-[#0b3558]">{member.name}</p>
-            <button type="button" onClick={() => void deleteMember(member)} className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-[#8fa2b2] transition-colors hover:text-rose-500">
+            {canEdit ? <button type="button" onClick={() => void deleteMember(member)} className="mt-1.5 inline-flex items-center gap-1 text-[10px] text-[#8fa2b2] transition-colors hover:text-rose-500">
               <Trash2 className="h-3 w-3" strokeWidth={1.6} />
               刪除
-            </button>
+            </button> : null}
           </div>
         ))}
       </div>
 
-      <form onSubmit={addMember} className="mt-6 flex gap-2 border-t border-[#e3edf4] pt-5">
+      {canEdit ? <form onSubmit={addMember} className="mt-6 flex gap-2 border-t border-[#e3edf4] pt-5">
         <input
           value={newMemberName}
           onChange={(event) => setNewMemberName(event.target.value)}
@@ -1028,7 +1101,7 @@ function MembersCard() {
           <Plus className="h-4 w-4" />
           新增
         </button>
-      </form>
+      </form> : null}
     </section>
   );
 }
@@ -1078,7 +1151,7 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
   );
 }
 
-function LedgerView() {
+function LedgerView({ canEdit }: { canEdit: boolean }) {
   const { members, cloudError } = useCloudMembers();
   const { expenses, cloudError: ledgerCloudError, addExpense: addCloudExpense, deleteExpense } = useCloudExpenses(initialExpenses);
   const [filter, setFilter] = useState("all");
@@ -1178,14 +1251,14 @@ function LedgerView() {
             </div>
             <div className="flex items-center gap-3">
               <p className="font-mono text-sm font-semibold text-[#163f62]">${expense.amount.toLocaleString()}</p>
-              <button onClick={() => void removeExpense(expense)} className="rounded-full p-2 text-[#8fa2b2] transition-colors hover:bg-rose-50 hover:text-rose-500" aria-label={`刪除${expense.title}`}>
+              {canEdit ? <button onClick={() => void removeExpense(expense)} className="rounded-full p-2 text-[#8fa2b2] transition-colors hover:bg-rose-50 hover:text-rose-500" aria-label={`刪除${expense.title}`}>
                 <Trash2 className="h-4 w-4" strokeWidth={1.5} />
-              </button>
+              </button> : null}
             </div>
           </div>;
         })}
       </div>
-      {adding ? (
+      {canEdit && adding ? (
         <form onSubmit={addExpense} className="mt-5 rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_12px_34px_rgba(8,47,82,0.07)]">
           <div className="flex items-center justify-between border-b border-[#e1ebf2] pb-4">
             <p className="text-sm tracking-[0.18em] text-[#6c8295]">新增款項</p>
@@ -1207,17 +1280,17 @@ function LedgerView() {
           </div>
           <button type="submit" className="mt-6 h-12 w-full rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.16em] text-white">加入款項</button>
         </form>
-      ) : (
+      ) : canEdit ? (
         <button onClick={() => setAdding(true)} className="mt-12 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.18em] text-white shadow-[0_12px_22px_rgba(8,47,82,0.18)]">
           <Plus className="h-4 w-4" />
           記一筆
         </button>
-      )}
+      ) : <p className="mt-8 text-center text-xs text-[#6c8295]">瀏覽模式 · 登入後可新增或刪除帳目</p>}
     </section>
   );
 }
 
-function ChecklistView() {
+function ChecklistView({ canEdit }: { canEdit: boolean }) {
   const { members } = useCloudMembers();
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const activeMemberId = members.some((member) => member.id === selectedMemberId) ? selectedMemberId : members[0]?.id ?? "";
@@ -1312,17 +1385,17 @@ function ChecklistView() {
               <div className="divide-y divide-[#e5eef4]">
                 {category.items.map((item) => (
                   <div key={item.id} className="flex min-h-14 items-center gap-3 px-5 py-3">
-                    <button
+                    {canEdit ? <button
                       onClick={() => toggleItem(category.id, item.id)}
                       className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded border transition", item.done ? "border-[#d1a047] bg-[#d1a047] text-white" : "border-[#cadbe7] bg-white text-transparent")}
                       aria-label={item.done ? "標記為未完成" : "標記為完成"}
                     >
                       <CheckSquare className="h-3.5 w-3.5" strokeWidth={2} />
-                    </button>
+                    </button> : <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded border", item.done ? "border-[#d1a047] bg-[#d1a047] text-white" : "border-[#cadbe7] bg-white text-transparent")}><CheckSquare className="h-3.5 w-3.5" strokeWidth={2} /></span>}
                     <span className={cn("flex-1 text-sm font-medium", item.done ? "text-[#aab9c5] line-through" : "text-[#0b3558]")}>{item.label}</span>
-                    <button onClick={() => removeItem(category.id, item.id)} className="text-[#8fa2b2]" aria-label="刪除物品">
+                    {canEdit ? <button onClick={() => removeItem(category.id, item.id)} className="text-[#8fa2b2]" aria-label="刪除物品">
                       <X className="h-4 w-4" strokeWidth={1.6} />
-                    </button>
+                    </button> : null}
                   </div>
                 ))}
               </div>
@@ -1330,7 +1403,7 @@ function ChecklistView() {
           );
         })}
       </div>
-      {adding ? (
+      {canEdit && adding ? (
         <form onSubmit={addItem} className="mt-6 rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_16px_36px_rgba(8,47,82,0.07)]">
           <div className="flex items-center justify-between border-b border-[#e1ebf2] pb-4">
             <p className="text-sm tracking-[0.18em] text-[#6c8295]">新增物品</p>
@@ -1350,12 +1423,12 @@ function ChecklistView() {
             加入清單
           </button>
         </form>
-      ) : (
+      ) : canEdit ? (
         <button onClick={() => setAdding(true)} className="mt-8 flex h-16 w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] font-serif text-xl tracking-[0.12em] text-white shadow-[0_14px_28px_rgba(8,47,82,0.2)]">
           <PackagePlus className="h-5 w-5" strokeWidth={1.6} />
           新增物品
         </button>
-      )}
+      ) : <p className="mt-8 text-center text-xs text-[#6c8295]">瀏覽模式 · 登入後可修改準備清單</p>}
     </section>
   );
 }
