@@ -140,7 +140,7 @@ export default function HomePage() {
   const [selectedItem, setSelectedItem] = useState<ItineraryItem | null>(null);
   const [editingItem, setEditingItem] = useState<ItineraryItem | null>(null);
   const [editDraft, setEditDraft] = useState<ItineraryItem | null>(null);
-  const { items: cloudItinerary, cloudError, addItem, updateItem, reorderItems, deleteItem } = useCloudItinerary();
+  const { items: cloudItinerary, cloudError, addItem, updateItem, reorderItems, reassignDates, deleteItem } = useCloudItinerary();
   const dayItems = useMemo(() => cloudItinerary.filter((item) => item.date === selectedDate), [cloudItinerary, selectedDate]);
 
   function addItineraryItem() {
@@ -195,7 +195,27 @@ export default function HomePage() {
               <WeatherCard />
               <StayCard canEdit={canEdit} />
               <SectionHeading title="每日行程" />
-              <DateRail selectedDate={selectedDate} onSelect={setSelectedDate} view={view} setView={setView} />
+              <DateRail
+                selectedDate={selectedDate}
+                onSelect={setSelectedDate}
+                view={view}
+                setView={setView}
+                canEdit={canEdit}
+                onMoveDay={async (sourceDate, targetDate) => {
+                  const dates = tripDays.map((day) => day.date);
+                  const sourceIndex = dates.indexOf(sourceDate);
+                  const targetIndex = dates.indexOf(targetDate);
+                  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
+
+                  const contentOrder = [...dates];
+                  const [movedDate] = contentOrder.splice(sourceIndex, 1);
+                  contentOrder.splice(targetIndex, 0, movedDate);
+                  const dateMap = Object.fromEntries(contentOrder.map((contentDate, index) => [contentDate, dates[index]]));
+
+                  await reassignDates(dateMap);
+                  setSelectedDate(targetDate);
+                }}
+              />
               {cloudError ? <p className="rounded-xl bg-rose-50 px-4 py-3 text-xs text-rose-600">{cloudError}</p> : null}
               {canEdit ? (
                 <button onClick={addItineraryItem} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] px-4 py-3 text-sm font-semibold text-white shadow-sm">
@@ -423,12 +443,17 @@ function DateRail({
   onSelect,
   view,
   setView,
+  canEdit,
+  onMoveDay,
 }: {
   selectedDate: string;
   onSelect: (date: string) => void;
   view: View;
   setView: (view: View) => void;
+  canEdit: boolean;
+  onMoveDay: (sourceDate: string, targetDate: string) => Promise<void>;
 }) {
+  const [draggedDate, setDraggedDate] = useState<string | null>(null);
   const selectedIndex = tripDays.findIndex((day) => day.date === selectedDate);
   const selectAdjacentDay = (offset: number) => {
     const nextDay = tripDays[selectedIndex + offset];
@@ -448,13 +473,37 @@ function DateRail({
           return (
             <button
               key={day.date}
+              draggable={canEdit}
               onClick={() => {
                 onSelect(day.date);
                 setView("home");
               }}
+              onDragStart={(event) => {
+                if (!canEdit) return;
+                setDraggedDate(day.date);
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", day.date);
+              }}
+              onDragEnd={() => setDraggedDate(null)}
+              onDragOver={(event) => {
+                if (!canEdit) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                if (!canEdit) return;
+                event.preventDefault();
+                const sourceDate = event.dataTransfer.getData("text/plain") || draggedDate;
+                if (!sourceDate || sourceDate === day.date) return;
+                void onMoveDay(sourceDate, day.date);
+                setDraggedDate(null);
+              }}
+              title={canEdit ? "拖曳可調整整天行程日期" : undefined}
               className={cn(
-                "mr-3 flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full border bg-white/60 font-serif shadow-[0_8px_20px_rgba(8,47,82,0.07)]",
+                "mr-3 flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-full border bg-white/60 font-serif shadow-[0_8px_20px_rgba(8,47,82,0.07)] transition",
+                canEdit && "cursor-grab active:cursor-grabbing",
                 active ? "border-[#d1a047] text-[#123f66]" : "border-[#dce8f0] text-[#8fa2b2]",
+                draggedDate === day.date && "scale-95 opacity-40",
               )}
             >
               <span className="text-xs">{day.day}</span>
