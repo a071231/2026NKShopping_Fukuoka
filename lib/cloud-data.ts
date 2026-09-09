@@ -12,6 +12,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from "firebase/firestore";
 
 import { itinerary as initialItinerary, type ItineraryItem } from "@/data/trip";
@@ -151,6 +152,16 @@ export function useCloudItinerary() {
     updateItem: (id: string, item: Partial<Omit<ItineraryItem, "id">>) => updateDoc(doc(db, "fukuoka_itinerary", id), item),
     reorderItems: (items: ItineraryItem[]) =>
       Promise.all(items.map((item, position) => updateDoc(doc(db, "fukuoka_itinerary", item.id), { position }))),
+    reassignDates: async (dateMap: Record<string, string>) => {
+      const batch = writeBatch(db);
+      items.forEach((item) => {
+        const nextDate = dateMap[item.date];
+        if (nextDate && nextDate !== item.date) {
+          batch.update(doc(db, "fukuoka_itinerary", item.id), { date: nextDate });
+        }
+      });
+      await batch.commit();
+    },
     deleteItem: (id: string) => deleteDoc(doc(db, "fukuoka_itinerary", id)),
   };
 }
