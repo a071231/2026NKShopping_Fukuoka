@@ -19,7 +19,17 @@ import { itinerary as initialItinerary, type ItineraryItem } from "@/data/trip";
 import { db } from "@/lib/firebase";
 
 export type TripMember = { id: string; name: string; avatar: string };
-export type CloudExpense = { id: string; title: string; amount: number; payer: string; paid?: boolean };
+export type ExpenseCurrency = "TWD" | "JPY";
+export type CloudExpense = {
+  id: string;
+  title: string;
+  amount: number;
+  payer: string;
+  paid?: boolean;
+  currency: ExpenseCurrency;
+  note: string;
+  memberIds?: string[];
+};
 export type CloudChecklistItem = { id: string; label: string; done: boolean };
 export type CloudChecklistCategory = { id: string; title: string; accent: string; items: CloudChecklistItem[] };
 
@@ -236,6 +246,11 @@ export function useCloudExpenses(initialExpenses: CloudExpense[]) {
                 amount: Number(data.amount ?? 0),
                 payer: String(data.payer ?? ""),
                 paid: Boolean(data.paid),
+                currency: data.currency === "TWD" ? ("TWD" as const) : ("JPY" as const),
+                note: typeof data.note === "string" ? data.note : "",
+                memberIds: Array.isArray(data.memberIds)
+                  ? data.memberIds.filter((memberId): memberId is string => typeof memberId === "string")
+                  : undefined,
                 position: Number(data.position ?? 0),
               };
             })
