@@ -1210,6 +1210,7 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<ExpenseCurrency>("JPY");
   const [note, setNote] = useState("");
+  const [paid, setPaid] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const legacyPayerIds: Record<string, string | undefined> = {
     K: members[0]?.id,
@@ -1237,11 +1238,10 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
         note: note.trim(),
         memberIds: selectedMemberIds,
         payer: selectedMemberIds[0] ?? "",
-        paid: false,
+        paid,
       } satisfies Omit<CloudExpense, "id">;
       if (editingExpenseId) {
-        const currentExpense = expenses.find((expense) => expense.id === editingExpenseId);
-        await updateCloudExpense(editingExpenseId, { ...nextExpense, paid: currentExpense?.paid ?? false });
+        await updateCloudExpense(editingExpenseId, nextExpense);
       } else {
         await addCloudExpense(nextExpense);
       }
@@ -1256,6 +1256,7 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
     setAmount("");
     setCurrency("JPY");
     setNote("");
+    setPaid(false);
     setSelectedMemberIds([]);
     setEditingExpenseId(null);
     setAdding(false);
@@ -1266,6 +1267,7 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
     setAmount(String(expense.amount));
     setCurrency(expense.currency);
     setNote(expense.note);
+    setPaid(Boolean(expense.paid));
     setSelectedMemberIds(expenseMemberIds(expense));
     setEditingExpenseId(expense.id);
     setAdding(true);
@@ -1361,6 +1363,13 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
             </div>
           </div>
           <textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="備註（選填）" rows={2} className="mt-5 w-full resize-none rounded-xl border border-[#d7e5ef] bg-[#f7fbfe] px-4 py-3 text-sm text-[#163f62] outline-none placeholder:text-[#aab9c5] focus:border-[#d1a047]" />
+          <div className="mt-5">
+            <p className="mb-3 text-xs font-medium text-[#6c8295]">付款狀態</p>
+            <div className="grid grid-cols-2 rounded-full border border-[#d7e5ef] bg-[#edf5fa] p-1">
+              <button type="button" onClick={() => setPaid(false)} aria-pressed={!paid} className={cn("rounded-full px-4 py-2.5 text-sm font-semibold transition", !paid ? "bg-white text-[#b56b3f] shadow-sm" : "text-[#8fa2b2]")}>未付</button>
+              <button type="button" onClick={() => setPaid(true)} aria-pressed={paid} className={cn("rounded-full px-4 py-2.5 text-sm font-semibold transition", paid ? "bg-[#0a3d66] text-white shadow-sm" : "text-[#8fa2b2]")}>已付</button>
+            </div>
+          </div>
           <div className="mt-5">
             <p className="mb-3 text-xs font-medium text-[#6c8295]">相關成員（可複選，也可不指定）</p>
             <div className="flex gap-3 overflow-x-auto pb-2">
