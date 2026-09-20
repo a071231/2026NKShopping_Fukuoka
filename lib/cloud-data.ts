@@ -274,6 +274,12 @@ export function useCloudExpenses(initialExpenses: CloudExpense[]) {
         userId: sharedId,
         createdAt: serverTimestamp(),
       }),
+    updateExpense: (id: string, expense: Omit<CloudExpense, "id">) =>
+      updateDoc(doc(db, "fukuoka_ledger", id), {
+        ...expense,
+        paid: Boolean(expense.paid),
+        updatedAt: serverTimestamp(),
+      }),
     deleteExpense: (id: string) => deleteDoc(doc(db, "fukuoka_ledger", id)),
   };
 }

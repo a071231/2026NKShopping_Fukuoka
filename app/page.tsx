@@ -1202,9 +1202,10 @@ function FlightTicket({ ticket }: { ticket: { label: string; date: string; from:
 
 function LedgerView({ canEdit }: { canEdit: boolean }) {
   const { members, cloudError } = useCloudMembers();
-  const { expenses, cloudError: ledgerCloudError, addExpense: addCloudExpense, deleteExpense } = useCloudExpenses(initialExpenses);
+  const { expenses, cloudError: ledgerCloudError, addExpense: addCloudExpense, updateExpense: updateCloudExpense, deleteExpense } = useCloudExpenses(initialExpenses);
   const [filter, setFilter] = useState("all");
   const [adding, setAdding] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<ExpenseCurrency>("JPY");
@@ -1229,7 +1230,7 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
     const parsedAmount = Number(amount.replace(/,/g, ""));
     if (!title.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
     try {
-      await addCloudExpense({
+      const nextExpense = {
         title: title.trim(),
         amount: Math.round(parsedAmount),
         currency,
@@ -1237,16 +1238,38 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
         memberIds: selectedMemberIds,
         payer: selectedMemberIds[0] ?? "",
         paid: false,
-      });
-      setTitle("");
-      setAmount("");
-      setCurrency("JPY");
-      setNote("");
-      setSelectedMemberIds([]);
-      setAdding(false);
+      } satisfies Omit<CloudExpense, "id">;
+      if (editingExpenseId) {
+        const currentExpense = expenses.find((expense) => expense.id === editingExpenseId);
+        await updateCloudExpense(editingExpenseId, { ...nextExpense, paid: currentExpense?.paid ?? false });
+      } else {
+        await addCloudExpense(nextExpense);
+      }
+      closeExpenseForm();
     } catch {
-      window.alert("新增帳目失敗，請確認網路與 Firebase 規則。");
+      window.alert(`${editingExpenseId ? "更新" : "新增"}帳目失敗，請確認網路與 Firebase 規則。`);
     }
+  }
+
+  function closeExpenseForm() {
+    setTitle("");
+    setAmount("");
+    setCurrency("JPY");
+    setNote("");
+    setSelectedMemberIds([]);
+    setEditingExpenseId(null);
+    setAdding(false);
+  }
+
+  function editExpense(expense: CloudExpense) {
+    setTitle(expense.title);
+    setAmount(String(expense.amount));
+    setCurrency(expense.currency);
+    setNote(expense.note);
+    setSelectedMemberIds(expenseMemberIds(expense));
+    setEditingExpenseId(expense.id);
+    setAdding(true);
+    window.setTimeout(() => document.getElementById("ledger-expense-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
   async function removeExpense(expense: CloudExpense) {
@@ -1312,6 +1335,9 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
             </div>
             <div className="flex items-center gap-3">
               <p className="whitespace-nowrap font-mono text-sm font-semibold text-[#163f62]">{formatAmount(expense.currency, expense.amount)}</p>
+              {canEdit ? <button onClick={() => editExpense(expense)} className="rounded-full p-2 text-[#8fa2b2] transition-colors hover:bg-[#edf5fa] hover:text-[#0a3d66]" aria-label={`編輯${expense.title}`}>
+                <Pencil className="h-4 w-4" strokeWidth={1.5} />
+              </button> : null}
               {canEdit ? <button onClick={() => void removeExpense(expense)} className="rounded-full p-2 text-[#8fa2b2] transition-colors hover:bg-rose-50 hover:text-rose-500" aria-label={`刪除${expense.title}`}>
                 <Trash2 className="h-4 w-4" strokeWidth={1.5} />
               </button> : null}
@@ -1320,10 +1346,10 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
         })}
       </div>
       {canEdit && adding ? (
-        <form onSubmit={addExpense} className="mt-5 rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_12px_34px_rgba(8,47,82,0.07)]">
+        <form id="ledger-expense-form" onSubmit={addExpense} className="mt-5 scroll-mt-24 rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_12px_34px_rgba(8,47,82,0.07)]">
           <div className="flex items-center justify-between border-b border-[#e1ebf2] pb-4">
-            <p className="text-sm tracking-[0.18em] text-[#6c8295]">新增款項</p>
-            <button type="button" onClick={() => setAdding(false)} className="text-[#6c8295]" aria-label="關閉新增款項">
+            <p className="text-sm tracking-[0.18em] text-[#6c8295]">{editingExpenseId ? "編輯款項" : "新增款項"}</p>
+            <button type="button" onClick={closeExpenseForm} className="text-[#6c8295]" aria-label="關閉款項表單">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -1346,7 +1372,7 @@ function LedgerView({ canEdit }: { canEdit: boolean }) {
             ))}
             </div>
           </div>
-          <button type="submit" className="mt-6 h-12 w-full rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.16em] text-white">加入款項</button>
+          <button type="submit" className="mt-6 h-12 w-full rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.16em] text-white">{editingExpenseId ? "儲存修改" : "加入款項"}</button>
         </form>
       ) : canEdit ? (
         <button onClick={() => setAdding(true)} className="mt-12 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-[#0a3d66] font-serif text-lg tracking-[0.18em] text-white shadow-[0_12px_22px_rgba(8,47,82,0.18)]">
